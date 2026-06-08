@@ -1,0 +1,1889 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RISE UP</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --primary:#1a6b4a;--primary-dark:#0f4a33;--primary-light:#e8f5ef;
+  --gold:#c8972a;--gold-light:#fdf6e8;
+  --danger:#c0392b;--danger-light:#fceaea;
+  --info:#1565c0;--info-light:#e3f0fd;
+  --warn:#e67e22;--warn-light:#fef0e3;
+  --gray-50:#f8f9fa;--gray-100:#f1f3f4;--gray-200:#e8eaed;--gray-400:#9aa0a6;--gray-600:#5f6368;--gray-800:#202124;
+  --shadow:0 1px 3px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.08);
+  --radius:10px;--radius-lg:16px;
+  --topbar-h:64px;
+}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#f0f4f8;color:var(--gray-800);min-height:100vh}
+h1,h2,h3,h4{font-family:'Outfit',sans-serif;font-weight:600}
+
+/* ── SCREENS ── */
+.screen{display:none!important;min-height:100vh}
+.screen.active{display:block!important}
+#loginScreen.active{display:flex!important}
+#mwanachamaDash.active,#mhaziniDash.active,#mwenyekitiDash.active{display:flex!important;flex-direction:column}
+
+/* ── LOGIN ── */
+#loginScreen{
+  align-items:center;justify-content:center;padding:20px;
+  background:#0f1923;
+  position:relative;overflow:hidden;
+}
+#loginScreen::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 70% 60% at 85% 50%, rgba(180,120,10,.45) 0%, transparent 70%),
+             radial-gradient(ellipse 50% 80% at 10% 20%, rgba(26,107,74,.3) 0%, transparent 60%);
+}
+#loginScreen::after{
+  content:'';position:absolute;inset:0;
+  background-image:radial-gradient(rgba(255,255,255,.03) 1px, transparent 1px);
+  background-size:32px 32px;
+}
+.auth-card{position:relative;z-index:1;background:rgba(255,255,255,.97);border-radius:var(--radius-lg);padding:40px;width:100%;max-width:440px;box-shadow:0 24px 80px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.1)}
+.logo-area{text-align:center;margin-bottom:28px}
+.logo-circle{width:72px;height:72px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;box-shadow:0 4px 16px rgba(26,107,74,.4)}
+.logo-circle span{color:#fff;font-size:24px;font-weight:700;font-family:'Outfit',sans-serif}
+.logo-area h2{color:var(--primary-dark);font-size:22px;margin-bottom:4px}
+.logo-area p{color:var(--gray-600);font-size:13px}
+.tab-switch{display:flex;background:var(--gray-100);border-radius:8px;padding:4px;margin-bottom:24px;gap:4px}
+.tab-switch button{flex:1;padding:8px 12px;border:none;background:transparent;border-radius:6px;cursor:pointer;font-size:14px;font-weight:500;color:var(--gray-600);transition:.2s}
+.tab-switch button.active{background:#fff;color:var(--primary);box-shadow:var(--shadow)}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:13px;font-weight:600;color:var(--gray-600);margin-bottom:6px}
+.form-group input,.form-group select{width:100%;padding:10px 14px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:14px;font-family:inherit;color:var(--gray-800);outline:none;transition:.2s;background:#fff}
+.form-group input:focus,.form-group select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(26,107,74,.1)}
+.btn{width:100%;padding:12px;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:.2s;font-family:inherit}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-dark)}
+.btn-danger{background:var(--danger);color:#fff}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* ── DASHBOARD WRAPPER ── */
+.dashboard{display:flex;flex-direction:column;min-height:100vh;
+  background:#0f1923;
+}
+.dash-bg{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse 65% 55% at 92% 50%, rgba(180,120,10,.38) 0%, transparent 65%),
+             radial-gradient(ellipse 45% 70% at 5% 15%, rgba(26,107,74,.25) 0%, transparent 55%),
+             radial-gradient(ellipse 50% 40% at 50% 100%, rgba(15,74,51,.4) 0%, transparent 60%);
+  background-color:#0f1923;
+}
+.dash-bg::after{
+  content:'';position:absolute;inset:0;
+  background-image:radial-gradient(rgba(255,255,255,.025) 1px, transparent 1px);
+  background-size:28px 28px;
+}
+
+/* ── TOP NAV BAR ── */
+.topbar{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  height:var(--topbar-h);
+  background:rgba(10,22,18,.88);
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  border-bottom:1px solid rgba(200,151,42,.18);
+  display:flex;align-items:center;padding:0 20px;gap:0;
+}
+.topbar-brand{display:flex;align-items:center;gap:10px;flex-shrink:0;margin-right:24px}
+.topbar-brand .brand-dot{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--gold));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;font-family:'Outfit',sans-serif;flex-shrink:0}
+.topbar-brand span{color:#fff;font-family:'Outfit',sans-serif;font-size:16px;font-weight:700;white-space:nowrap}
+.topbar-brand small{color:rgba(255,255,255,.45);font-size:11px;display:block;margin-top:-2px}
+
+.topbar-nav{display:flex;align-items:center;gap:2px;flex:1;overflow-x:auto;scrollbar-width:none}
+.topbar-nav::-webkit-scrollbar{display:none}
+.nav-tab{display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:8px;cursor:pointer;color:rgba(255,255,255,.55);font-size:13.5px;font-weight:500;transition:.2s;white-space:nowrap;border:none;background:transparent;font-family:inherit}
+.nav-tab svg{flex-shrink:0;opacity:.7}
+.nav-tab:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.85)}
+.nav-tab.active{background:rgba(200,151,42,.15);color:var(--gold);border:1px solid rgba(200,151,42,.25)}
+.nav-tab.active svg{opacity:1}
+
+.topbar-right{display:flex;align-items:center;gap:10px;flex-shrink:0;margin-left:12px}
+.user-pill{display:flex;align-items:center;gap:8px;padding:5px 10px 5px 5px;background:rgba(255,255,255,.07);border-radius:30px;border:1px solid rgba(255,255,255,.1)}
+.user-avatar{width:30px;height:30px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:var(--primary-dark);flex-shrink:0}
+.user-pill .uname{color:rgba(255,255,255,.8);font-size:12.5px;font-weight:600;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.logout-btn{padding:6px 14px;background:rgba(192,57,43,.15);border:1px solid rgba(192,57,43,.3);color:#f0857a;border-radius:7px;cursor:pointer;font-size:12.5px;font-weight:600;font-family:inherit;transition:.2s;white-space:nowrap}
+.logout-btn:hover{background:rgba(192,57,43,.3);color:#fff}
+
+/* hamburger for mobile */
+.hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:6px;background:rgba(255,255,255,.07);border-radius:7px;border:none;flex-shrink:0}
+.hamburger span{width:20px;height:2px;background:rgba(255,255,255,.7);border-radius:2px;display:block;transition:.2s}
+
+/* mobile drawer */
+.mobile-nav{
+  display:none;position:fixed;top:var(--topbar-h);left:0;right:0;z-index:99;
+  background:rgba(10,22,18,.97);backdrop-filter:blur(20px);
+  border-bottom:1px solid rgba(200,151,42,.2);
+  padding:12px 16px 16px;
+  flex-direction:column;gap:4px;
+}
+.mobile-nav.open{display:flex}
+.mobile-nav .nav-tab{justify-content:flex-start;width:100%;padding:11px 14px}
+
+/* ── MAIN CONTENT AREA ── */
+.main-content{
+  flex:1;
+  margin-top:var(--topbar-h);
+  position:relative;z-index:1;
+  overflow-y:auto;
+  min-height:calc(100vh - var(--topbar-h));
+}
+.page-header{
+  background:rgba(255,255,255,.04);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid rgba(255,255,255,.07);
+  padding:18px 24px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:10;
+}
+.page-header h2{font-size:19px;color:#fff;font-weight:600}
+.page-header p{font-size:13px;color:rgba(255,255,255,.45);margin-top:2px}
+.page-body{padding:20px 24px}
+.dash-section{display:none}
+.dash-section.active{display:block}
+
+/* ── CARDS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:20px}
+.stat-card{
+  background:rgba(255,255,255,.07);
+  backdrop-filter:blur(12px);
+  border-radius:var(--radius);padding:18px;
+  border:1px solid rgba(255,255,255,.1);
+  transition:.2s;
+}
+.stat-card:hover{background:rgba(255,255,255,.1)}
+.stat-card .label{font-size:11px;font-weight:600;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px}
+.stat-card .value{font-size:22px;font-weight:700;color:#fff;font-family:'Outfit',sans-serif}
+.stat-card .sub{font-size:11.5px;color:rgba(255,255,255,.4);margin-top:4px}
+.stat-card.green{border-left:3px solid var(--primary);background:rgba(26,107,74,.15)}
+.stat-card.gold{border-left:3px solid var(--gold);background:rgba(200,151,42,.12)}
+.stat-card.red{border-left:3px solid var(--danger);background:rgba(192,57,43,.12)}
+.stat-card.blue{border-left:3px solid var(--info);background:rgba(21,101,192,.12)}
+.stat-card.green .value,.stat-card.green .label{color:rgba(255,255,255,.9)}
+.stat-card.gold .value{color:#f0c060}
+.stat-card.red .value{color:#f0857a}
+.stat-card.blue .value{color:#82b1e8}
+
+/* ── TABLES ── */
+.table-card{
+  background:rgba(255,255,255,.06);
+  backdrop-filter:blur(12px);
+  border-radius:var(--radius);
+  border:1px solid rgba(255,255,255,.1);
+  overflow:hidden;margin-bottom:16px;
+}
+.table-header{padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:space-between}
+.table-header h3{font-size:15px;color:#fff;font-weight:600}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{background:rgba(0,0,0,.2);padding:9px 14px;text-align:left;font-weight:600;color:rgba(255,255,255,.4);font-size:11px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid rgba(255,255,255,.07)}
+td{padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:middle;color:rgba(255,255,255,.8)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.04)}
+
+/* ── BADGES ── */
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:600}
+.badge-pending{background:rgba(255,193,7,.15);color:#ffc107;border:1px solid rgba(255,193,7,.3)}
+.badge-approved{background:rgba(26,107,74,.2);color:#6fcf97;border:1px solid rgba(26,107,74,.4)}
+.badge-rejected{background:rgba(192,57,43,.15);color:#f0857a;border:1px solid rgba(192,57,43,.3)}
+.badge-active{background:rgba(21,101,192,.15);color:#82b1e8;border:1px solid rgba(21,101,192,.3)}
+.badge-paid{background:rgba(26,107,74,.2);color:#6fcf97;border:1px solid rgba(26,107,74,.3)}
+.badge-partial{background:rgba(230,126,34,.15);color:#f0a060;border:1px solid rgba(230,126,34,.3)}
+
+/* ── ACTION BTNS ── */
+.btn-sm{padding:5px 12px;border-radius:6px;font-size:12.5px;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:.2s}
+.btn-approve{background:rgba(26,107,74,.2);color:#6fcf97;border:1px solid rgba(26,107,74,.4)}
+.btn-approve:hover{background:var(--primary);color:#fff}
+.btn-reject{background:rgba(192,57,43,.15);color:#f0857a;border:1px solid rgba(192,57,43,.3)}
+.btn-reject:hover{background:var(--danger);color:#fff}
+.btn-info{background:rgba(21,101,192,.15);color:#82b1e8}
+.btn-info:hover{background:var(--info);color:#fff}
+.btn-gold{background:rgba(200,151,42,.15);color:#f0c060}
+.btn-gold:hover{background:var(--gold);color:#fff}
+
+/* ── FORMS ── */
+.form-card{
+  background:rgba(255,255,255,.07);backdrop-filter:blur(12px);
+  border-radius:var(--radius);border:1px solid rgba(255,255,255,.1);
+  padding:22px;max-width:600px;margin-bottom:16px;
+}
+.form-card h3{font-size:15px;margin-bottom:18px;color:#fff}
+.dash-form-group{margin-bottom:14px}
+.dash-form-group label{display:block;font-size:12.5px;font-weight:600;color:rgba(255,255,255,.5);margin-bottom:5px}
+.dash-form-group input,.dash-form-group select,.dash-form-group textarea{
+  width:100%;padding:9px 12px;border:1.5px solid rgba(255,255,255,.12);
+  border-radius:7px;font-size:14px;font-family:inherit;outline:none;transition:.2s;
+  background:rgba(255,255,255,.06);color:#fff;
+}
+.dash-form-group select option{background:#1a2a22;color:#fff}
+.dash-form-group input::placeholder,.dash-form-group textarea::placeholder{color:rgba(255,255,255,.25)}
+.dash-form-group input:focus,.dash-form-group select:focus,.dash-form-group textarea:focus{border-color:var(--gold);background:rgba(255,255,255,.09)}
+.dash-btn{padding:10px 22px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:.2s}
+.dash-btn-primary{background:var(--primary);color:#fff}
+.dash-btn-primary:hover{background:var(--primary-dark)}
+.dash-btn-danger{background:var(--danger);color:#fff}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px}
+.modal-box{background:#1a2a22;border:1px solid rgba(200,151,42,.3);border-radius:var(--radius-lg);padding:28px;max-width:460px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.modal-box h3{font-size:17px;margin-bottom:12px;color:#fff}
+.modal-box p{font-size:13.5px;color:rgba(255,255,255,.65);line-height:1.7;margin-bottom:20px}
+.modal-actions{display:flex;gap:12px;justify-content:flex-end}
+.modal-actions button{padding:9px 18px;border-radius:8px;font-size:13.5px;font-weight:600;cursor:pointer;border:none;font-family:inherit}
+.modal-cancel{background:rgba(255,255,255,.1);color:rgba(255,255,255,.7)}
+.modal-confirm{background:var(--primary);color:#fff}
+
+/* ── NOTIFICATION ── */
+.notif{position:fixed;top:76px;right:18px;background:#1a2a22;border-radius:10px;padding:13px 16px;box-shadow:0 8px 32px rgba(0,0,0,.4);display:flex;align-items:center;gap:10px;z-index:9999;max-width:340px;border-left:4px solid var(--primary);border:1px solid rgba(26,107,74,.4);animation:slideIn .3s ease;font-size:13.5px;color:rgba(255,255,255,.85)}
+.notif.error{border-left-color:var(--danger);border-color:rgba(192,57,43,.4)}
+.notif.warn{border-left-color:var(--gold);border-color:rgba(200,151,42,.4)}
+@keyframes slideIn{from{transform:translateX(110%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* ── LOAN BREAKDOWN ── */
+.loan-breakdown{background:rgba(26,107,74,.15);border-radius:var(--radius);padding:14px;margin:14px 0;border:1px solid rgba(26,107,74,.3)}
+.loan-row{display:flex;justify-content:space-between;padding:6px 0;font-size:13.5px}
+.loan-row:not(:last-child){border-bottom:1px solid rgba(26,107,74,.2)}
+.loan-row strong{font-weight:600;color:#6fcf97}
+.loan-row span{color:rgba(255,255,255,.55)}
+
+/* ── HISA CARD ── */
+.hisa-card{background:linear-gradient(135deg,rgba(15,74,51,.8),rgba(26,107,74,.6));border-radius:var(--radius-lg);padding:22px;color:#fff;position:relative;overflow:hidden;margin-bottom:20px;border:1px solid rgba(26,107,74,.4)}
+.hisa-card::before{content:'';position:absolute;top:-30px;right:-30px;width:140px;height:140px;border-radius:50%;background:rgba(200,151,42,.08)}
+.hisa-card .hisa-label{font-size:11px;opacity:.6;text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px}
+.hisa-card .hisa-val{font-size:30px;font-weight:700;font-family:'Outfit',sans-serif;margin-bottom:3px}
+.hisa-card .hisa-sub{font-size:13px;opacity:.7}
+.hisa-meta{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+.hisa-meta-item{background:rgba(255,255,255,.1);border-radius:8px;padding:10px}
+.hisa-meta-item .lbl{font-size:10.5px;opacity:.6;margin-bottom:4px}
+.hisa-meta-item .val{font-size:16px;font-weight:700;font-family:'Outfit',sans-serif}
+
+/* ── REPORT ── */
+.report-summary{background:rgba(26,107,74,.15);border-radius:var(--radius);padding:18px;margin-bottom:18px;border:1px solid rgba(26,107,74,.3)}
+.report-summary h4{color:#6fcf97;margin-bottom:12px}
+.report-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.report-item{text-align:center;background:rgba(255,255,255,.04);border-radius:8px;padding:10px}
+.report-item .r-val{font-size:17px;font-weight:700;color:#fff;font-family:'Outfit',sans-serif}
+.report-item .r-lbl{font-size:11px;color:rgba(255,255,255,.4);margin-top:3px}
+
+/* ── LAYOUT HELPERS ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+
+/* ── PRINT ── */
+@media print{
+  .topbar,.mobile-nav,.notif{display:none!important}
+  .main-content{margin:0;background:#fff!important}
+  .dashboard,.dash-bg{background:#fff!important}
+  td,th,h2,h3,.value,.label,.sub,.r-val,.r-lbl,.loan-row span,.loan-row strong{color:#000!important}
+  .table-card,.form-card,.stat-card,.report-summary,.report-item{background:#fff!important;border:1px solid #ccc!important}
+}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  .two-col{grid-template-columns:1fr}
+  .form-row{grid-template-columns:1fr}
+  .topbar-nav{display:none}
+  .user-pill .uname{display:none}
+  .hamburger{display:flex}
+  .page-body{padding:14px 14px}
+  .stats-grid{grid-template-columns:1fr 1fr;gap:10px}
+  .stat-card .value{font-size:18px}
+}
+@media(max-width:480px){
+  .stats-grid{grid-template-columns:1fr}
+  .topbar{padding:0 14px}
+  .topbar-brand span{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== LOGIN SCREEN ===== -->
+<div id="loginScreen" class="screen active">
+  <div class="auth-card">
+    <div class="logo-area">
+      <div class="logo-circle"><span>RU</span></div>
+      <h2>RISE UP</h2>
+      <p>Mfumo wa Usimamizi wa Kikundi</p>
+    </div>
+    <div class="tab-switch">
+      <button class="active" onclick="switchAuthTab('login')">Ingia</button>
+      <button onclick="switchAuthTab('register')">Jisajili</button>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <div id="loginForm">
+      <div class="form-group">
+        <label>Jina la Mtumiaji</label>
+        <input type="text" id="loginUsername" placeholder="Ingiza jina lako la mtumiaji">
+      </div>
+      <div class="form-group">
+        <label>Nywila</label>
+        <input type="password" id="loginPassword" placeholder="Ingiza nywila yako">
+      </div>
+      <button class="btn btn-primary" onclick="doLogin()">Login</button>
+    </div>
+
+    <!-- REGISTER FORM -->
+    <div id="registerForm" style="display:none">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Jina la Kwanza</label>
+          <input type="text" id="regFirstName" placeholder="Jina la kwanza">
+        </div>
+        <div class="form-group">
+          <label>Jina la Familia</label>
+          <input type="text" id="regLastName" placeholder="Jina la familia">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Namba ya Simu</label>
+        <input type="tel" id="regPhone" placeholder="0712345678">
+      </div>
+      <div class="form-group">
+        <label>Jina la Mtumiaji</label>
+        <input type="text" id="regUsername" placeholder="Chagua jina la mtumiaji">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nywila</label>
+          <input type="password" id="regPassword" placeholder="Nywila">
+        </div>
+        <div class="form-group">
+          <label>Thibitisha Nywila</label>
+          <input type="password" id="regConfirm" placeholder="Rudia nywila">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="doRegister()">Tuma Ombi la Kujisajili</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MWANACHAMA DASHBOARD ===== -->
+<div id="mwanachamaDash" class="screen">
+  <div class="dashboard">
+    <div class="dash-bg"></div>
+    <!-- TOPBAR -->
+    <nav class="topbar">
+      <div class="topbar-brand">
+        <div class="brand-dot">RU</div>
+        <div><span>RISE UP</span><small>Kikundi cha Akiba</small></div>
+      </div>
+      <div class="topbar-nav">
+        <button class="nav-tab active" onclick="showMcSection('mcHome')">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Dashibodi
+        </button>
+        <button class="nav-tab" onclick="showMcSection('mcHisa')">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>Hisa Zangu
+        </button>
+        <button class="nav-tab" onclick="showMcSection('mcMkopo')">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Omba Mkopo
+        </button>
+        <button class="nav-tab" onclick="showMcSection('mcMikopo')">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Mikopo Yangu
+        </button>
+      </div>
+      <div class="topbar-right">
+        <div class="user-pill">
+          <div class="user-avatar" id="mcAvatar">M</div>
+          <span class="uname" id="mcName">Mwanachama</span>
+        </div>
+        <button class="logout-btn" onclick="doLogout()">Logout</button>
+        <button class="hamburger" onclick="toggleMobileNav('mcMobileNav')" aria-label="Menu">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </nav>
+    <!-- MOBILE NAV -->
+    <div id="mcMobileNav" class="mobile-nav">
+      <button class="nav-tab active" onclick="showMcSection('mcHome');closeMobileNav('mcMobileNav')">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>Dashibodi
+      </button>
+      <button class="nav-tab" onclick="showMcSection('mcHisa');closeMobileNav('mcMobileNav')">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/></svg>Hisa Zangu
+      </button>
+      <button class="nav-tab" onclick="showMcSection('mcMkopo');closeMobileNav('mcMobileNav')">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Omba Mkopo
+      </button>
+      <button class="nav-tab" onclick="showMcSection('mcMikopo');closeMobileNav('mcMobileNav')">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/></svg>Mikopo Yangu
+      </button>
+    </div>
+    <div class="main-content">
+      <!-- MC HOME -->
+      <div id="mcHome" class="dash-section active">
+        <div class="page-header">
+          <div><h2 id="mcWelcome">Karibu!</h2><p>Muhtasari wa Akaunti Yako</p></div>
+        </div>
+        <div class="page-body">
+          <div class="stats-grid">
+            <div class="stat-card green">
+              <div class="label">Jumla ya Hisa</div>
+              <div class="value" id="mcTotalHisaCount">0</div>
+              <div class="sub" id="mcTotalHisaAmt">TSh 0</div>
+            </div>
+            <div class="stat-card blue">
+              <div class="label">Mkopo Unaoendelea</div>
+              <div class="value" id="mcActiveLoan">Hakuna</div>
+              <div class="sub" id="mcLoanRemain">—</div>
+            </div>
+            <div class="stat-card gold">
+              <div class="label">Kiasi Kilicholipwa</div>
+              <div class="value" id="mcPaidAmt">TSh 0</div>
+              <div class="sub">Jumla ya malipo</div>
+            </div>
+          </div>
+          <div class="table-card">
+            <div class="table-header"><h3>Historia ya Mikopo</h3></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Tarehe</th><th>Kiasi</th><th>Kiasi cha Kulipa</th><th>Tarehe ya Kulipa</th><th>Kilichobaki</th><th>Hali</th></tr></thead>
+                <tbody id="mcLoansTable"><tr><td colspan="6" class="empty"><p>Hakuna mkopo bado</p></td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MC HISA -->
+      <div id="mcHisa" class="dash-section">
+        <div class="page-header"><div><h2>Hisa Zangu</h2><p>Muhtasari wa hisa ulizomiliki</p></div></div>
+        <div class="page-body">
+          <div class="hisa-card">
+            <div class="hisa-label">Jumla ya Hisa Unazomiliki</div>
+            <div class="hisa-val" id="mcHisaBig">0 Hisa</div>
+            <div class="hisa-sub" id="mcHisaAmtBig">Sawa na TSh 0</div>
+            <div class="hisa-meta">
+              <div class="hisa-meta-item">
+                <div class="lbl">Thamani kwa Hisa</div>
+                <div class="val">TSh 100,000</div>
+              </div>
+              <div class="hisa-meta-item">
+                <div class="lbl">Hali ya Hisa</div>
+                <div class="val" id="mcHisaStatus">Hai</div>
+              </div>
+            </div>
+          </div>
+          <div class="table-card">
+            <div class="table-header"><h3>Historia ya Hisa</h3></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>#</th><th>Tarehe</th><th>Idadi Iliyoongezwa</th><th>Jumla Baada ya Kuongeza</th><th>Iliyoidhinishwa na</th></tr></thead>
+                <tbody id="mcHisaTable"><tr><td colspan="5" class="empty"><p>Hakuna rekodi ya hisa</p></td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MC OMBA MKOPO -->
+      <div id="mcMkopo" class="dash-section">
+        <div class="page-header"><div><h2>Omba Mkopo</h2><p>Wasilisha ombi la mkopo</p></div></div>
+        <div class="page-body">
+          <div class="form-card">
+            <h3>Fomu ya Ombi la Mkopo</h3>
+            <div class="dash-form-group">
+              <label>Kiasi cha Mkopo (TSh)</label>
+              <input type="number" id="loanAmount" placeholder="Mfano: 500000" min="100000" step="50000" oninput="calcLoanPreview()">
+            </div>
+            <div id="loanPreview" style="display:none" class="loan-breakdown">
+              <div class="loan-row"><span>Kiasi cha Mkopo</span><strong id="prevAmt">—</strong></div>
+              <div class="loan-row"><span>Riba (10%)</span><strong id="prevRiba">—</strong></div>
+              <div class="loan-row"><span>Jumla ya Kulipa</span><strong id="prevTotal">—</strong></div>
+              <div class="loan-row"><span>Tarehe ya Kuomba</span><strong id="prevReq">—</strong></div>
+              <div class="loan-row"><span>Tarehe ya Kulipa</span><strong id="prevDue">—</strong></div>
+            </div>
+            <div class="dash-form-group">
+              <label>Maelezo / Sababu</label>
+              <textarea id="loanReason" rows="3" placeholder="Eleza kwa nini unahitaji mkopo huu..."></textarea>
+            </div>
+            <button class="dash-btn dash-btn-primary" onclick="submitLoanRequest()">Tuma Ombi la Mkopo</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MC MIKOPO -->
+      <div id="mcMikopo" class="dash-section">
+        <div class="page-header"><div><h2>Mikopo Yangu</h2><p>Maelezo ya mikopo yako yote</p></div></div>
+        <div class="page-body">
+          <div class="table-card">
+            <div class="table-header"><h3>Mikopo Yote</h3></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Tarehe Iliyotolewa</th><th>Kiasi</th><th>Kiasi cha Kulipa</th><th>Tarehe ya Mwisho</th><th>Kilichopunguzwa</th><th>Kilichobaki</th><th>Hali</th></tr></thead>
+                <tbody id="mcDetailLoans"><tr><td colspan="7" class="empty"><p>Hakuna mikopo iliyoidhinishwa</p></td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MHAZINI DASHBOARD ===== -->
+<div id="mhaziniDash" class="screen">
+  <div class="dashboard">
+    <div class="dash-bg"></div>
+    <nav class="topbar">
+      <div class="topbar-brand">
+        <div class="brand-dot">RU</div>
+        <div><span>RISE UP</span><small>Mhazini</small></div>
+      </div>
+      <div class="topbar-nav">
+        <button class="nav-tab active" onclick="showMhSection('mhHome')">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>Dashibodi
+        </button>
+        <button class="nav-tab" onclick="showMhSection('mhMikopo')">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Idhinisha Mikopo
+        </button>
+        <button class="nav-tab" onclick="showMhSection('mhHisa')">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>Simamia Hisa
+        </button>
+        <button class="nav-tab" onclick="showMhSection('mhMatumizi')">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Matumizi
+        </button>
+        <button class="nav-tab" onclick="showMhSection('mhRipoti')">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Ripoti
+        </button>
+        <button class="nav-tab" onclick="showMhSection('mhLipaMkopo')">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Lipa Mkopo
+        </button>
+      </div>
+      <div class="topbar-right">
+        <div class="user-pill">
+          <div class="user-avatar" style="background:var(--gold);color:#4a2c0a">MH</div>
+          <span class="uname">Mhazini</span>
+        </div>
+        <button class="logout-btn" onclick="doLogout()">Logout</button>
+        <button class="hamburger" onclick="toggleMobileNav('mhMobileNav')" aria-label="Menu">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </nav>
+    <div id="mhMobileNav" class="mobile-nav">
+      <button class="nav-tab active" onclick="showMhSection('mhHome');closeMobileNav('mhMobileNav')"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>Dashibodi</button>
+      <button class="nav-tab" onclick="showMhSection('mhMikopo');closeMobileNav('mhMobileNav')"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>Idhinisha Mikopo</button>
+      <button class="nav-tab" onclick="showMhSection('mhHisa');closeMobileNav('mhMobileNav')"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/></svg>Simamia Hisa</button>
+      <button class="nav-tab" onclick="showMhSection('mhMatumizi');closeMobileNav('mhMobileNav')"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/></svg>Matumizi</button>
+      <button class="nav-tab" onclick="showMhSection('mhRipoti');closeMobileNav('mhMobileNav')"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/></svg>Ripoti</button>
+      <button class="nav-tab" onclick="showMhSection('mhLipaMkopo');closeMobileNav('mhMobileNav')"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Lipa Mkopo</button>
+    </div>
+    <div class="main-content">
+      <!-- MH HOME -->
+      <div id="mhHome" class="dash-section active">
+        <div class="page-header"><div><h2>Dashibodi - Mhazini</h2><p>Muhtasari wa fedha za kikundi</p></div></div>
+        <div class="page-body">
+          <div class="stats-grid">
+            <div class="stat-card green">
+              <div class="label">Jumla ya Hisa</div>
+              <div class="value" id="mhTotalHisaCount">0</div>
+              <div class="sub" id="mhTotalHisaAmt">TSh 0</div>
+            </div>
+            <div class="stat-card blue">
+              <div class="label">Mikopo Iliyotolewa</div>
+              <div class="value" id="mhTotalLoans">TSh 0</div>
+              <div class="sub" id="mhLoanCount">mikopo 0</div>
+            </div>
+            <div class="stat-card gold">
+              <div class="label">Kilicholipwa</div>
+              <div class="value" id="mhPaidAmt">TSh 0</div>
+              <div class="sub">malipo yaliyokamilika</div>
+            </div>
+            <div class="stat-card red">
+              <div class="label">Kilichobaki (Deni)</div>
+              <div class="value" id="mhUnpaidAmt">TSh 0</div>
+              <div class="sub">bado halijapwa</div>
+            </div>
+            <div class="stat-card green">
+              <div class="label">Faida Halisi</div>
+              <div class="value" id="mhProfit">TSh 0</div>
+              <div class="sub">10% ya kilicholipwa</div>
+            </div>
+            <div class="stat-card gold">
+              <div class="label">Faida kwa Hisa</div>
+              <div class="value" id="mhPerHisa">TSh 0</div>
+              <div class="sub">baada ya matumizi</div>
+            </div>
+          </div>
+          <div class="table-card">
+            <div class="table-header"><h3>Mikopo Inayosubiri Idhini ya Mwenyekiti</h3></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Mwanachama</th><th>Kiasi</th><th>Omba</th><th>Tarehe</th><th>Hali</th></tr></thead>
+                <tbody id="mhPendingChairTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MH MIKOPO -->
+      <div id="mhMikopo" class="dash-section">
+        <div class="page-header"><div><h2>Idhinisha Mikopo</h2><p>Ombi la mikopo linasubiri idhini yako</p></div></div>
+        <div class="page-body">
+          <div class="table-card">
+            <div class="table-header"><h3>Mikopo Inayosubiri</h3></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Mwanachama</th><th>Kiasi</th><th>Riba</th><th>Jumla</th><th>Tarehe</th><th>Sababu</th><th>Vitendo</th></tr></thead>
+                <tbody id="mhLoanRequests"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MH HISA -->
+      <div id="mhHisa" class="dash-section">
+        <div class="page-header"><div><h2>Simamia Hisa</h2><p>Sasisha hisa za wanachama</p></div></div>
+        <div class="page-body">
+          <div class="two-col">
+            <div class="form-card">
+              <h3>Ongeza Hisa kwa Mwanachama</h3>
+              <div class="dash-form-group">
+                <label>Chagua Mwanachama</label>
+                <select id="hisaMember"></select>
+              </div>
+              <div class="dash-form-group">
+                <label>Idadi ya Hisa za Kuongeza</label>
+                <input type="number" id="hisaCount" min="1" placeholder="Mfano: 2">
+              </div>
+              <div class="dash-form-group">
+                <label>Tarehe</label>
+                <input type="date" id="hisaDate">
+              </div>
+              <button class="dash-btn dash-btn-primary" onclick="submitHisa()">Tuma kwa Mwenyekiti</button>
+            </div>
+            <div class="table-card" style="height:fit-content">
+              <div class="table-header"><h3>Hisa za Wanachama Wote</h3></div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Mwanachama</th><th>Hisa</th><th>Kiasi</th></tr></thead>
+                  <tbody id="mhHisaTable"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div class="table-card" style="margin-top:20px">
+            <div class="table-header"><h3>Historia ya Hisa (Zinazosubiri Idhini)</h3></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Mwanachama</th><th>Hisa</th><th>Tarehe</th><th>Hali</th></tr></thead>
+                <tbody id="mhHisaHistory"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MH MATUMIZI -->
+      <div id="mhMatumizi" class="dash-section">
+        <div class="page-header"><div><h2>Matumizi ya Kikundi</h2><p>Rekodi matumizi ya fedha za kikundi</p></div></div>
+        <div class="page-body">
+          <div class="two-col">
+            <div class="form-card">
+              <h3>Ingiza Matumizi Mapya</h3>
+              <div class="dash-form-group">
+                <label>Kichwa cha Matumizi</label>
+                <input type="text" id="expTitle" placeholder="Mfano: Gharama za mkutano">
+              </div>
+              <div class="dash-form-group">
+                <label>Kiasi (TSh)</label>
+                <input type="number" id="expAmount" placeholder="0">
+              </div>
+              <div class="dash-form-group">
+                <label>Tarehe</label>
+                <input type="date" id="expDate">
+              </div>
+              <div class="dash-form-group">
+                <label>Maelezo</label>
+                <textarea id="expDesc" rows="2" placeholder="Maelezo ya matumizi..."></textarea>
+              </div>
+              <button class="dash-btn dash-btn-primary" onclick="submitExpense()">Hifadhi Matumizi</button>
+            </div>
+            <div>
+              <div class="stat-card gold" style="margin-bottom:16px">
+                <div class="label">Jumla ya Matumizi</div>
+                <div class="value" id="mhTotalExp">TSh 0</div>
+                <div class="sub">Matumizi yote ya kikundi</div>
+              </div>
+              <div class="table-card">
+                <div class="table-header"><h3>Matumizi Yote</h3></div>
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>Tarehe</th><th>Kichwa</th><th>Kiasi</th></tr></thead>
+                    <tbody id="expTable"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MH RIPOTI -->
+      <div id="mhRipoti" class="dash-section">
+        <div class="page-header">
+          <div><h2>Ripoti ya Kikundi</h2><p>Muhtasari kamili wa kikundi</p></div>
+          <button class="dash-btn dash-btn-primary" onclick="window.print()">Chapisha Ripoti</button>
+        </div>
+        <div class="page-body" id="reportContent">
+          <!-- generated dynamically -->
+        </div>
+      </div>
+
+      <!-- MH LIPA MKOPO -->
+      <div id="mhLipaMkopo" class="dash-section">
+        <div class="page-header"><div><h2>Lipa Mkopo</h2><p>Rekodi malipo ya mkopo</p></div></div>
+        <div class="page-body">
+          <div class="form-card">
+            <h3>Rekodi Malipo ya Mkopo</h3>
+            <div class="dash-form-group">
+              <label>Chagua Mwanachama</label>
+              <select id="payMember" onchange="loadMemberLoan()"></select>
+            </div>
+            <div id="loanPayInfo" style="display:none">
+              <div class="loan-breakdown">
+                <div class="loan-row"><span>Kiasi cha Mkopo</span><strong id="payLoanAmt">—</strong></div>
+                <div class="loan-row"><span>Jumla ya Kulipa</span><strong id="payLoanTotal">—</strong></div>
+                <div class="loan-row"><span>Kilicholipwa</span><strong id="payLoanPaid">—</strong></div>
+                <div class="loan-row"><span>Kilichobaki</span><strong id="payLoanRemain">—</strong></div>
+                <div class="loan-row"><span>Tarehe ya Mwisho</span><strong id="payLoanDue">—</strong></div>
+              </div>
+              <div class="dash-form-group">
+                <label>Kiasi cha Malipo (TSh)</label>
+                <input type="number" id="payAmount" placeholder="0" min="1000">
+              </div>
+              <div class="dash-form-group">
+                <label>Tarehe ya Malipo</label>
+                <input type="date" id="payDate">
+              </div>
+              <button class="dash-btn dash-btn-primary" onclick="recordPayment()">Hifadhi Malipo</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MWENYEKITI DASHBOARD ===== -->
+<div id="mwenyekitiDash" class="screen">
+  <div class="dashboard">
+    <div class="dash-bg"></div>
+    <nav class="topbar">
+      <div class="topbar-brand">
+        <div class="brand-dot">RU</div>
+        <div><span>RISE UP</span><small>Mwenyekiti</small></div>
+      </div>
+      <div class="topbar-nav">
+        <button class="nav-tab active" onclick="showMkSection('mkHome')">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>Dashibodi
+        </button>
+        <button class="nav-tab" onclick="showMkSection('mkWanachama')">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Usajili
+        </button>
+        <button class="nav-tab" onclick="showMkSection('mkMikopo')">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Idhini Mikopo
+        </button>
+        <button class="nav-tab" onclick="showMkSection('mkHisa')">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>Thibitisha Hisa
+        </button>
+        <button class="nav-tab" onclick="showMkSection('mkWanachama2')">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Wanachama Wote
+        </button>
+      </div>
+      <div class="topbar-right">
+        <div class="user-pill">
+          <div class="user-avatar" style="background:#c8972a;color:#4a2c0a">MK</div>
+          <span class="uname">Mwenyekiti</span>
+        </div>
+        <button class="logout-btn" onclick="doLogout()">Logout</button>
+        <button class="hamburger" onclick="toggleMobileNav('mkMobileNav')" aria-label="Menu">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </nav>
+    <div id="mkMobileNav" class="mobile-nav">
+      <button class="nav-tab active" onclick="showMkSection('mkHome');closeMobileNav('mkMobileNav')"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>Dashibodi</button>
+      <button class="nav-tab" onclick="showMkSection('mkWanachama');closeMobileNav('mkMobileNav')"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/></svg>Usajili wa Wanachama</button>
+      <button class="nav-tab" onclick="showMkSection('mkMikopo');closeMobileNav('mkMobileNav')"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>Idhini ya Mikopo</button>
+      <button class="nav-tab" onclick="showMkSection('mkHisa');closeMobileNav('mkMobileNav')"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/></svg>Thibitisha Hisa</button>
+      <button class="nav-tab" onclick="showMkSection('mkWanachama2');closeMobileNav('mkMobileNav')"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Wanachama Wote</button>
+    </div>
+    <div class="main-content">
+      <!-- MK HOME -->
+      <div id="mkHome" class="dash-section active">
+        <div class="page-header"><div><h2>Dashibodi - Mwenyekiti</h2><p>Mamlaka ya Jumla ya Kikundi</p></div></div>
+        <div class="page-body">
+          <div class="stats-grid">
+            <div class="stat-card green">
+              <div class="label">Wanachama Walioidhinishwa</div>
+              <div class="value" id="mkMembersCount">0</div>
+              <div class="sub">wanachama hai</div>
+            </div>
+            <div class="stat-card gold">
+              <div class="label">Maombi Mapya</div>
+              <div class="value" id="mkPendingRegs">0</div>
+              <div class="sub">yanayosubiri idhini</div>
+            </div>
+            <div class="stat-card blue">
+              <div class="label">Mikopo Inayosubiri</div>
+              <div class="value" id="mkPendingLoans">0</div>
+              <div class="sub">ya mwisho kwako</div>
+            </div>
+            <div class="stat-card red">
+              <div class="label">Hisa Zinazosubiri</div>
+              <div class="value" id="mkPendingHisa">0</div>
+              <div class="sub">kutoka kwa mhazini</div>
+            </div>
+          </div>
+          <!-- Pending regs quick view -->
+          <div class="table-card" style="margin-bottom:20px">
+            <div class="table-header"><h3>Maombi ya Usajili Yanayosubiri</h3></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Jina Kamili</th><th>Namba ya Simu</th><th>Jina la Mtumiaji</th><th>Vitendo</th></tr></thead>
+                <tbody id="mkRegRequests"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="table-card">
+            <div class="table-header"><h3>Mikopo Inayosubiri Idhini ya Mwisho</h3></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Mwanachama</th><th>Kiasi</th><th>Jumla ya Kulipa</th><th>Tarehe</th><th>Vitendo</th></tr></thead>
+                <tbody id="mkLoanFinalTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MK WANACHAMA -->
+      <div id="mkWanachama" class="dash-section">
+        <div class="page-header"><div><h2>Usajili wa Wanachama</h2><p>Idhinisha au kataa maombi ya wanachama wapya</p></div></div>
+        <div class="page-body">
+          <div class="table-card">
+            <div class="table-header"><h3>Maombi ya Kujiunga</h3></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Jina Kamili</th><th>Namba ya Simu</th><th>Jina la Mtumiaji</th><th>Tarehe</th><th>Vitendo</th></tr></thead>
+                <tbody id="mkRegTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MK MIKOPO -->
+      <div id="mkMikopo" class="dash-section">
+        <div class="page-header"><div><h2>Idhini ya Mikopo - Hatua ya Mwisho</h2><p>Thibitisha mikopo iliyoidhinishwa na Mhazini</p></div></div>
+        <div class="page-body">
+          <div class="table-card">
+            <div class="table-header"><h3>Mikopo Inayosubiri Idhini Yako</h3></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Mwanachama</th><th>Kiasi</th><th>Riba</th><th>Jumla</th><th>Tarehe</th><th>Vitendo</th></tr></thead>
+                <tbody id="mkLoanTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MK HISA -->
+      <div id="mkHisa" class="dash-section">
+        <div class="page-header"><div><h2>Thibitisha Hisa</h2><p>Kagua na thibitisha hisa zilizosasishwa na Mhazini</p></div></div>
+        <div class="page-body">
+          <div class="table-card">
+            <div class="table-header"><h3>Hisa Zinazosubiri Idhini</h3></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Mwanachama</th><th>Hisa za Kuongeza</th><th>Kiasi</th><th>Tarehe</th><th>Vitendo</th></tr></thead>
+                <tbody id="mkHisaTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MK WANACHAMA WOTE -->
+      <div id="mkWanachama2" class="dash-section">
+        <div class="page-header"><div><h2>Wanachama Wote</h2><p>Orodha ya wanachama waliosajiliwa</p></div></div>
+        <div class="page-body">
+          <div class="table-card">
+            <div class="table-header"><h3>Wanachama Walioidhinishwa</h3></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>#</th><th>Jina Kamili</th><th>Namba ya Simu</th><th>Hisa</th><th>Mkopo Unaoendelea</th><th>Hali</th><th>Vitendo</th></tr></thead>
+                <tbody id="mkAllMembers"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- DELETE MEMBER MODAL -->
+<div id="deleteMemberModal" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <h3 style="color:#f0857a">🗑️ Futa Mwanachama</h3>
+    <p>Unakaribia kufuta mwanachama <strong style="color:#fff" id="deleteMemberName"></strong> kutoka kwenye kikundi cha <strong style="color:var(--gold)">RISE UP</strong>.<span id="deleteWarn"></span><br><br>Hatua hii haiwezi kurudishwa. Je, una uhakika?</p>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="document.getElementById('deleteMemberModal').style.display='none'">Ghairi</button>
+      <button style="background:var(--danger);color:#fff;padding:9px 18px;border-radius:8px;font-size:13.5px;font-weight:600;cursor:pointer;border:none;font-family:inherit" onclick="doDeleteMember()">Ndio, Futa</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOAN CONFIRM MODAL -->
+<div id="loanModal" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <h3>⚠️ Thibitisha Ombi la Mkopo</h3>
+    <p id="loanModalText"></p>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeLoanModal()">Ghairi</button>
+      <button class="modal-confirm" onclick="confirmLoanSubmit()">Ndio, Tuma Ombi</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIFICATION -->
+<div id="notif" class="notif" style="display:none">
+  <span id="notifText"></span>
+</div>
+
+<script>
+// ============================================================
+// SUPABASE CONFIG
+// ============================================================
+const SUPA_URL = 'https://xcpmjdekqcpqzsarqdoi.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhjcG1qZGVrcWNwcXpzYXJxZG9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NDk0MjAsImV4cCI6MjA5NTEyNTQyMH0.ay0AIMyTKrtOIZyL-OsfRO2yRTyhfMZDdBf033FWj_A';
+
+const SB = {
+  async get(table, filters={}) {
+    let url = `${SUPA_URL}/rest/v1/${table}?`;
+    const params = ['select=*'];
+    Object.entries(filters).forEach(([k,v]) => params.push(`${k}=eq.${encodeURIComponent(v)}`));
+    url += params.join('&');
+    const r = await fetch(url, { headers: sbHeaders() });
+    if (!r.ok) { console.error('SB.get error', table, await r.text()); return []; }
+    return r.json();
+  },
+  async insert(table, data) {
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}`, {
+      method: 'POST',
+      headers: { ...sbHeaders(), 'Prefer': 'return=representation' },
+      body: JSON.stringify(data)
+    });
+    if (!r.ok) { console.error('SB.insert error', table, await r.text()); return null; }
+    const rows = await r.json();
+    return Array.isArray(rows) ? rows[0] : rows;
+  },
+  async update(table, match, data) {
+    let url = `${SUPA_URL}/rest/v1/${table}?`;
+    url += Object.entries(match).map(([k,v]) => `${k}=eq.${encodeURIComponent(v)}`).join('&');
+    const r = await fetch(url, {
+      method: 'PATCH',
+      headers: { ...sbHeaders(), 'Prefer': 'return=representation' },
+      body: JSON.stringify(data)
+    });
+    if (!r.ok) { console.error('SB.update error', table, await r.text()); return null; }
+    return r.json();
+  },
+  async delete(table, match) {
+    let url = `${SUPA_URL}/rest/v1/${table}?`;
+    url += Object.entries(match).map(([k,v]) => `${k}=eq.${encodeURIComponent(v)}`).join('&');
+    const r = await fetch(url, { method: 'DELETE', headers: sbHeaders() });
+    if (!r.ok) { console.error('SB.delete error', table, await r.text()); }
+    return r.ok;
+  },
+  async getWhere(table, filters) {
+    // filters: array of {col, op, val} e.g. [{col:'status',op:'eq',val:'approved'},{col:'member_id',op:'eq',val:'x'}]
+    let url = `${SUPA_URL}/rest/v1/${table}?select=*`;
+    filters.forEach(f => { url += `&${f.col}=${f.op}.${encodeURIComponent(f.val)}`; });
+    const r = await fetch(url, { headers: sbHeaders() });
+    if (!r.ok) { console.error('SB.getWhere error', table, await r.text()); return []; }
+    return r.json();
+  }
+};
+
+function sbHeaders() {
+  return {
+    'apikey': SUPA_KEY,
+    'Authorization': `Bearer ${SUPA_KEY}`,
+    'Content-Type': 'application/json'
+  };
+}
+
+// ── Loading overlay ──────────────────────────────────────────
+function showLoading(msg='Inapakia...') {
+  let el = document.getElementById('loadingOverlay');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'loadingOverlay';
+    el.style.cssText = 'position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)';
+    el.innerHTML = `<div style="background:#111d17;border:1px solid rgba(200,151,42,.3);border-radius:14px;padding:28px 36px;text-align:center">
+      <div style="width:36px;height:36px;border:3px solid rgba(200,151,42,.3);border-top-color:#c8972a;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px"></div>
+      <div id="loadingMsg" style="color:#fff;font-size:14px;font-family:'Outfit',sans-serif">${msg}</div>
+    </div>`;
+    document.body.appendChild(el);
+    const style = document.createElement('style');
+    style.textContent = '@keyframes spin{to{transform:rotate(360deg)}}';
+    document.head.appendChild(style);
+  } else {
+    document.getElementById('loadingMsg').textContent = msg;
+    el.style.display = 'flex';
+  }
+}
+function hideLoading() {
+  const el = document.getElementById('loadingOverlay');
+  if (el) el.style.display = 'none';
+}
+
+let currentUser = null;
+let pendingLoanData = null;
+let pendingDeleteId = null;
+let pendingDeleteName = null;
+
+// ============================================================
+// AUTH
+// ============================================================
+function switchAuthTab(tab){
+  document.querySelectorAll('.tab-switch button').forEach((b,i)=>{
+    b.classList.toggle('active', (tab==='login'&&i===0)||(tab==='register'&&i===1));
+  });
+  document.getElementById('loginForm').style.display = tab==='login'?'block':'none';
+  document.getElementById('registerForm').style.display = tab==='register'?'block':'none';
+}
+
+async function doLogin(){
+  const u=document.getElementById('loginUsername').value.trim();
+  const p=document.getElementById('loginPassword').value.trim();
+  if(!u||!p){showNotif('Tafadhali jaza sehemu zote!','error');return;}
+  showLoading('Inaingia...');
+  try {
+    // Check staff first
+    const staff = await SB.getWhere('staff', [{col:'username',op:'eq',val:u},{col:'password',op:'eq',val:p}]);
+    if(staff.length) {
+      currentUser = { id:staff[0].id, username:staff[0].username, role:staff[0].role,
+        fullName:staff[0].full_name, firstName:staff[0].full_name.split(' ')[0], phone:staff[0].phone };
+      hideLoading();
+      if(staff[0].role==='mhazini') await loadMhaziniDash();
+      else if(staff[0].role==='mwenyekiti') await loadMwenyekitiDash();
+      return;
+    }
+    // Check members
+    const members = await SB.getWhere('members', [{col:'username',op:'eq',val:u},{col:'password',op:'eq',val:p}]);
+    if(members.length) {
+      const m = members[0];
+      hideLoading();
+      if(m.status==='pending'){showNotif('Akaunti yako bado inasubiri idhini ya Mwenyekiti.','warn');return;}
+      if(m.status==='rejected'){showNotif('Ombi lako la usajili lilikataliwa.','error');return;}
+      currentUser = { id:m.id, username:m.username, role:'mwanachama',
+        fullName:m.full_name, firstName:m.first_name, lastName:m.last_name,
+        phone:m.phone, hisa:m.hisa, status:m.status };
+      await loadMwanachamaDash();
+      return;
+    }
+    hideLoading();
+    showNotif('Jina la mtumiaji au nywila si sahihi!','error');
+  } catch(e) {
+    hideLoading();
+    showNotif('Hitilafu ya mtandao. Jaribu tena!','error');
+    console.error(e);
+  }
+}
+
+async function doRegister(){
+  const fn=v('regFirstName'),ln=v('regLastName'),ph=v('regPhone'),un=v('regUsername'),pw=v('regPassword'),pc=v('regConfirm');
+  if(!fn||!ln||!ph||!un||!pw||!pc){showNotif('Tafadhali jaza sehemu zote!','error');return;}
+  if(pw!==pc){showNotif('Nywila hazifanani!','error');return;}
+  if(pw.length<6){showNotif('Nywila iwe na herufi 6 au zaidi!','error');return;}
+  showLoading('Inatuma ombi...');
+  try {
+    // Check username unique across members + staff
+    const [existM, existS] = await Promise.all([
+      SB.getWhere('members',[{col:'username',op:'eq',val:un}]),
+      SB.getWhere('staff',[{col:'username',op:'eq',val:un}])
+    ]);
+    if(existM.length || existS.length) {
+      hideLoading();
+      showNotif('Jina la mtumiaji tayari linatumika!','error');
+      return;
+    }
+    const memberId = 'm_' + Date.now();
+    // Insert member
+    await SB.insert('members', {
+      id: memberId, first_name: fn, last_name: ln,
+      phone: ph, username: un, password: pw,
+      status: 'pending', hisa: 0, role: 'mwanachama',
+      join_date: today()
+    });
+    // Insert registration request
+    await SB.insert('registration_requests', {
+      id: memberId, full_name: fn+' '+ln,
+      first_name: fn, last_name: ln, phone: ph,
+      username: un, request_date: today(), status: 'pending'
+    });
+    hideLoading();
+    showNotif('Ombi lako limetumwa! Mwenyekiti atakagua na kukuthibitishia.');
+    simulateSMS('0784054321',`RISE UP: Ombi jipya la kujiunga limepokelewa kutoka kwa ${fn} ${ln} (${ph}). Tafadhali angalia dashibodi yako kwa idhini.`);
+    simulateWhatsApp('0784054321',`RISE UP: Kuna ombi jipya la mwanachama ${fn} ${ln}. Tafadhali ingia mfumoni kwa idhini au kukataa.`);
+    flushMsgQueue();
+    switchAuthTab('login');
+    document.getElementById('registerForm').querySelectorAll('input').forEach(i=>i.value='');
+  } catch(e) {
+    hideLoading();
+    showNotif('Hitilafu ya mtandao. Jaribu tena!','error');
+    console.error(e);
+  }
+}
+
+function v(id){return document.getElementById(id)?.value?.trim()||'';}
+
+// ============================================================
+// MESSAGING
+// ============================================================
+let msgQueue = [];
+function simulateSMS(number, message){ msgQueue.push({ type:'sms', number, message }); }
+function simulateWhatsApp(number, message){ msgQueue.push({ type:'wa', number, message }); }
+
+function flushMsgQueue(){
+  if(!msgQueue.length) return;
+  const panel = document.getElementById('msgPanel');
+  const list  = document.getElementById('msgList');
+  list.innerHTML = '';
+  msgQueue.forEach(m => {
+    const clean   = m.number.replace(/[^0-9]/g,'');
+    const intl    = '255' + (clean.startsWith('0') ? clean.slice(1) : clean);
+    const encoded = encodeURIComponent(m.message);
+    let href, icon, label, colorClass;
+    if(m.type==='sms'){
+      href = `sms:+${intl}?body=${encoded}`;
+      icon = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>`;
+      label = 'Tuma SMS'; colorClass = 'msg-btn-sms';
+    } else {
+      href = `https://wa.me/${intl}?text=${encoded}`;
+      icon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.126 1.532 5.862L.057 23.486a.5.5 0 00.609.61l5.7-1.493A11.942 11.942 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.907 0-3.694-.528-5.218-1.443l-.374-.222-3.384.887.899-3.294-.24-.381A9.953 9.953 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>`;
+      label = 'Tuma WhatsApp'; colorClass = 'msg-btn-wa';
+    }
+    const shortNum = '+' + intl;
+    const preview = m.message.length > 60 ? m.message.slice(0,60)+'…' : m.message;
+    list.innerHTML += `
+      <div class="msg-item">
+        <div class="msg-meta">
+          <span class="msg-num">${shortNum}</span>
+          <span class="msg-preview">${preview}</span>
+        </div>
+        <a href="${href}" target="_blank" class="msg-btn ${colorClass}" onclick="markSent(this)">
+          ${icon} ${label}
+        </a>
+      </div>`;
+  });
+  panel.style.display = 'flex';
+  msgQueue = [];
+}
+function markSent(el){
+  el.innerHTML = '✓ Imetumwa'; el.style.opacity='0.5'; el.style.pointerEvents='none';
+  const allDone=[...document.querySelectorAll('#msgList .msg-btn')].every(b=>b.innerHTML.includes('✓'));
+  if(allDone) setTimeout(()=>closeMsgPanel(),800);
+}
+function closeMsgPanel(){ document.getElementById('msgPanel').style.display='none'; }
+
+// ============================================================
+// MWANACHAMA DASHBOARD
+// ============================================================
+async function loadMwanachamaDash(){
+  showScreen('mwanachamaDash');
+  const u = currentUser;
+  document.getElementById('mcAvatar').textContent = u.firstName[0].toUpperCase();
+  document.getElementById('mcName').textContent   = u.fullName;
+  document.getElementById('mcWelcome').textContent = `Karibu, ${u.firstName}!`;
+  await refreshMcStats();
+}
+
+async function refreshMcStats(){
+  const u = currentUser;
+  // Reload hisa from DB in case it changed
+  const mRows = await SB.get('members', {id: u.id});
+  if(mRows.length) { u.hisa = mRows[0].hisa; currentUser.hisa = mRows[0].hisa; }
+
+  const loans = await SB.getWhere('loans',[{col:'member_id',op:'eq',val:u.id},{col:'status',op:'eq',val:'approved'}]);
+  const totalHisa = u.hisa||0;
+  document.getElementById('mcTotalHisaCount').textContent = totalHisa+' Hisa';
+  document.getElementById('mcTotalHisaAmt').textContent   = 'TSh '+fmt(totalHisa*100000);
+
+  const activeLoan = loans.find(l=>l.repaid_status!=='paid');
+  if(activeLoan){
+    document.getElementById('mcActiveLoan').textContent  = 'TSh '+fmt(activeLoan.amount);
+    const remain = activeLoan.total_repay - (activeLoan.paid_amount||0);
+    document.getElementById('mcLoanRemain').textContent  = 'Kilichobaki: TSh '+fmt(remain);
+  } else {
+    document.getElementById('mcActiveLoan').textContent  = 'Hakuna';
+    document.getElementById('mcLoanRemain').textContent  = '—';
+  }
+  const totalPaid = loans.reduce((s,l)=>s+(parseFloat(l.paid_amount)||0),0);
+  document.getElementById('mcPaidAmt').textContent = 'TSh '+fmt(totalPaid);
+  renderMcLoansTable(loans);
+  renderMcDetailLoans(loans);
+  await renderMcHisa(u);
+}
+
+function renderMcLoansTable(loans){
+  const tb = document.getElementById('mcLoansTable');
+  if(!loans.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:rgba(255,255,255,.3);padding:20px">Hakuna mkopo</td></tr>';return;}
+  tb.innerHTML = loans.map(l=>{
+    const remain = l.total_repay-(l.paid_amount||0);
+    const badge  = l.repaid_status==='paid'?'badge-approved':remain>0?'badge-active':'badge-pending';
+    const status = l.repaid_status==='paid'?'Imelipwa':remain>0?'Inaendelea':'Imekamilika';
+    return `<tr>
+      <td>${l.approved_date||l.request_date}</td>
+      <td>TSh ${fmt(l.amount)}</td><td>TSh ${fmt(l.total_repay)}</td>
+      <td>${l.due_date}</td><td>TSh ${fmt(l.paid_amount||0)}</td>
+      <td><span class="badge ${badge}">${status}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderMcDetailLoans(loans){
+  const tb = document.getElementById('mcDetailLoans');
+  if(!loans.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:rgba(255,255,255,.3);padding:20px">Hakuna mikopo</td></tr>';return;}
+  tb.innerHTML = loans.map(l=>{
+    const remain = l.total_repay-(l.paid_amount||0);
+    const st     = l.repaid_status==='paid'?'badge-approved':remain>0?'badge-active':'badge-pending';
+    const stL    = l.repaid_status==='paid'?'Imelipwa':remain>0?'Inaendelea':'Imekamilika';
+    return `<tr>
+      <td>${l.approved_date||l.request_date}</td>
+      <td>TSh ${fmt(l.amount)}</td><td>TSh ${fmt(l.total_repay)}</td>
+      <td>${l.due_date}</td><td>TSh ${fmt(l.paid_amount||0)}</td>
+      <td>TSh ${fmt(Math.max(0,remain))}</td>
+      <td><span class="badge ${st}">${stL}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+async function renderMcHisa(u){
+  const hisa = u.hisa||0;
+  document.getElementById('mcHisaBig').textContent    = hisa+' Hisa';
+  document.getElementById('mcHisaAmtBig').textContent = 'Sawa na TSh '+fmt(hisa*100000);
+  document.getElementById('mcHisaStatus').textContent = hisa>0?'Hai':'Hakuna Hisa';
+  const history = await SB.getWhere('hisa_updates',[{col:'member_id',op:'eq',val:u.id},{col:'status',op:'eq',val:'approved'}]);
+  const tb = document.getElementById('mcHisaTable');
+  if(!history.length){tb.innerHTML='<tr><td colspan="5" style="text-align:center;color:rgba(255,255,255,.3);padding:20px">Hakuna rekodi</td></tr>';return;}
+  let running=0;
+  tb.innerHTML = history.map((h,i)=>{ running+=h.count; return `<tr><td>${i+1}</td><td>${h.date}</td><td>${h.count}</td><td>${running}</td><td>Mwenyekiti</td></tr>`; }).join('');
+}
+
+function showMcSection(id){
+  document.querySelectorAll('#mwanachamaDash .dash-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('#mwanachamaDash .nav-tab').forEach(n=>n.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const navMap={mcHome:0,mcHisa:1,mcMkopo:2,mcMikopo:3};
+  const desktopTabs=document.querySelectorAll('#mwanachamaDash .topbar-nav .nav-tab');
+  const mobileTabs=document.querySelectorAll('#mcMobileNav .nav-tab');
+  if(navMap[id]!==undefined){desktopTabs[navMap[id]]?.classList.add('active');mobileTabs[navMap[id]]?.classList.add('active');}
+  if(id==='mcMkopo') document.getElementById('loanPreview').style.display='none';
+  refreshMcStats();
+}
+
+// LOAN REQUEST
+function calcLoanPreview(){
+  const amt=parseFloat(document.getElementById('loanAmount').value)||0;
+  if(amt<1){document.getElementById('loanPreview').style.display='none';return;}
+  const riba=amt*0.1, total=amt+riba, dueDate=addMonths(today(),2);
+  document.getElementById('prevAmt').textContent='TSh '+fmt(amt);
+  document.getElementById('prevRiba').textContent='TSh '+fmt(riba);
+  document.getElementById('prevTotal').textContent='TSh '+fmt(total);
+  document.getElementById('prevReq').textContent=today();
+  document.getElementById('prevDue').textContent=dueDate;
+  document.getElementById('loanPreview').style.display='block';
+}
+
+function submitLoanRequest(){
+  const amt=parseFloat(document.getElementById('loanAmount').value)||0;
+  if(amt<100000){showNotif('Kiwango cha chini cha mkopo ni TSh 100,000!','error');return;}
+  const reason=document.getElementById('loanReason').value.trim();
+  if(!reason){showNotif('Tafadhali eleza sababu ya mkopo!','error');return;}
+  const riba=amt*0.1, total=amt+riba, due=addMonths(today(),2);
+  const txt=`Unakaribia kuomba mkopo wa Tsh. ${fmt(amt)} wenye riba ya Tsh. ${fmt(riba)}, utatakiwa kurejesha jumla ya Tsh. ${fmt(total)} kabla ya tarehe ${due}. Tafadhali kama unakubaliana na taratibu hizi, unaweza kuconfirm kutuma ombi lako.`;
+  document.getElementById('loanModalText').textContent=txt;
+  pendingLoanData={amt,riba,total,due,reason};
+  document.getElementById('loanModal').style.display='flex';
+}
+
+function closeLoanModal(){document.getElementById('loanModal').style.display='none';}
+
+async function confirmLoanSubmit(){
+  closeLoanModal();
+  const {amt,riba,total,due,reason}=pendingLoanData;
+  showLoading('Inatuma ombi la mkopo...');
+  await SB.insert('loans',{
+    id:'l_'+Date.now(), member_id:currentUser.id,
+    member_name:currentUser.fullName, member_phone:currentUser.phone,
+    amount:amt, riba:riba, total_repay:total, due_date:due,
+    reason:reason, request_date:today(),
+    status:'pending_mhazini', paid_amount:0, repaid_status:'pending'
+  });
+  hideLoading();
+  document.getElementById('loanAmount').value='';
+  document.getElementById('loanReason').value='';
+  document.getElementById('loanPreview').style.display='none';
+  showNotif('Ombi lako la mkopo limetumwa kwa Mhazini!');
+  simulateSMS('0752536237',`RISE UP: Ombi la mkopo wa TSh ${fmt(amt)} kutoka kwa ${currentUser.fullName} (${currentUser.phone}). Tafadhali angalia dashibodi yako.`);
+  simulateWhatsApp('0752536237',`RISE UP: ${currentUser.fullName} ameomba mkopo wa TSh ${fmt(amt)}. Ingia mfumoni kwa idhini.`);
+  flushMsgQueue();
+}
+
+// ============================================================
+// MHAZINI DASHBOARD
+// ============================================================
+async function loadMhaziniDash(){
+  showScreen('mhaziniDash');
+  await refreshMhStats();
+  await populateMhaziniSelects();
+}
+
+async function refreshMhStats(){
+  const [members, allLoans, expenses] = await Promise.all([
+    SB.get('members',{status:'approved'}),
+    SB.get('loans',{status:'approved'}),
+    SB.get('expenses')
+  ]);
+  const totalHisa    = members.reduce((s,m)=>s+(m.hisa||0),0);
+  const totalGiven   = allLoans.reduce((s,l)=>s+parseFloat(l.amount),0);
+  const totalPaid    = allLoans.reduce((s,l)=>s+(parseFloat(l.paid_amount)||0),0);
+  const totalRepay   = allLoans.reduce((s,l)=>s+parseFloat(l.total_repay),0);
+  const unpaid       = Math.max(0,totalRepay-totalPaid);
+  const profit       = totalPaid*0.1;
+  const totalExp     = expenses.reduce((s,e)=>s+parseFloat(e.amount),0);
+  const netProfit    = profit-totalExp;
+  const perHisa      = totalHisa>0 ? netProfit/totalHisa : 0;
+
+  document.getElementById('mhTotalHisaCount').textContent='TSh '+fmt(totalHisa*100000);
+  document.getElementById('mhTotalHisaAmt').textContent=totalHisa+' Hisa';
+  document.getElementById('mhTotalLoans').textContent='TSh '+fmt(totalGiven);
+  document.getElementById('mhLoanCount').textContent='mikopo '+allLoans.length;
+  document.getElementById('mhPaidAmt').textContent='TSh '+fmt(totalPaid);
+  document.getElementById('mhUnpaidAmt').textContent='TSh '+fmt(unpaid);
+  document.getElementById('mhProfit').textContent='TSh '+fmt(profit);
+  document.getElementById('mhPerHisa').textContent='TSh '+fmt(Math.max(0,perHisa));
+  document.getElementById('mhTotalExp').textContent='TSh '+fmt(totalExp);
+
+  await Promise.all([
+    renderMhLoanRequests(), renderMhHisaTable(),
+    renderExpTable(), renderMhPendingChair()
+  ]);
+}
+
+async function renderMhLoanRequests(){
+  const loans = await SB.get('loans',{status:'pending_mhazini'});
+  const tb = document.getElementById('mhLoanRequests');
+  if(!loans.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:rgba(255,255,255,.3);padding:20px">Hakuna maombi</td></tr>';return;}
+  tb.innerHTML = loans.map(l=>`
+    <tr>
+      <td>${l.member_name}</td><td>TSh ${fmt(l.amount)}</td>
+      <td>TSh ${fmt(l.riba)}</td><td>TSh ${fmt(l.total_repay)}</td>
+      <td>${l.request_date}</td>
+      <td style="max-width:150px;font-size:12px">${l.reason||'—'}</td>
+      <td style="display:flex;gap:6px">
+        <button class="btn-sm btn-approve" onclick="mhLoanAction('${l.id}','approve')">Idhinisha</button>
+        <button class="btn-sm btn-reject"  onclick="mhLoanAction('${l.id}','reject')">Kataa</button>
+      </td>
+    </tr>`).join('');
+}
+
+async function mhLoanAction(loanId, action){
+  const loans = await SB.get('loans',{id:loanId});
+  const loan  = loans[0]; if(!loan) return;
+  showLoading('Inasasisha...');
+  if(action==='approve'){
+    await SB.update('loans',{id:loanId},{status:'pending_mwenyekiti'});
+    hideLoading();
+    showNotif('Mkopo umeidhinishwa! Umetumwa kwa Mwenyekiti.');
+    simulateSMS('0784054321',`RISE UP: Mhazini ameidhinisha mkopo wa TSh ${fmt(loan.amount)} wa ${loan.member_name}. Tafadhali angalia dashibodi kwa idhini ya mwisho.`);
+    simulateWhatsApp('0784054321',`RISE UP: Mkopo wa ${loan.member_name} (TSh ${fmt(loan.amount)}) umeidhinishwa na Mhazini. Inahitaji idhini yako.`);
+    flushMsgQueue();
+  } else {
+    await SB.update('loans',{id:loanId},{status:'rejected',repaid_status:'rejected'});
+    hideLoading();
+    showNotif('Mkopo umekataliwa.','warn');
+    simulateSMS(loan.member_phone,`RISE UP: Samahani, ombi lako la mkopo wa TSh ${fmt(loan.amount)} limekataliwa na Mhazini.`);
+    flushMsgQueue();
+  }
+  await refreshMhStats();
+}
+
+async function renderMhHisaTable(){
+  const [members, history] = await Promise.all([
+    SB.get('members',{status:'approved'}),
+    SB.get('hisa_updates',{status:'pending'})
+  ]);
+  const tb = document.getElementById('mhHisaTable');
+  if(!members.length){tb.innerHTML='<tr><td colspan="3" style="text-align:center;color:rgba(255,255,255,.3);padding:20px">Hakuna wanachama</td></tr>';}
+  else tb.innerHTML = members.map(m=>`<tr><td>${m.full_name}</td><td>${m.hisa||0}</td><td>TSh ${fmt((m.hisa||0)*100000)}</td></tr>`).join('');
+
+  const th = document.getElementById('mhHisaHistory');
+  if(!history.length){th.innerHTML='<tr><td colspan="4" style="text-align:center;color:rgba(255,255,255,.3);padding:20px">Hakuna maombi ya hisa yanayosubiri</td></tr>';return;}
+  th.innerHTML = history.map(h=>`<tr><td>${h.member_name}</td><td>${h.count}</td><td>${h.date}</td><td><span class="badge badge-pending">Inasubiri Mwenyekiti</span></td></tr>`).join('');
+}
+
+async function renderMhPendingChair(){
+  const loans = await SB.get('loans',{status:'pending_mwenyekiti'});
+  const tb = document.getElementById('mhPendingChairTable');
+  if(!loans.length){tb.innerHTML='<tr><td colspan="5" style="text-align:center;color:rgba(255,255,255,.3);padding:20px">Hakuna</td></tr>';return;}
+  tb.innerHTML = loans.map(l=>`<tr>
+    <td>${l.member_name}</td><td>TSh ${fmt(l.amount)}</td>
+    <td>TSh ${fmt(l.total_repay)}</td><td>${l.request_date}</td>
+    <td><span class="badge badge-pending">Inasubiri Mwenyekiti</span></td>
+  </tr>`).join('');
+}
+
+async function populateMhaziniSelects(){
+  const members = await SB.get('members',{status:'approved'});
+  const opts = members.map(m=>`<option value="${m.id}">${m.full_name}</option>`).join('');
+  ['hisaMember','payMember'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=opts||'<option>Hakuna wanachama</option>'; });
+  document.getElementById('hisaDate').value=today();
+  document.getElementById('expDate').value=today();
+}
+
+async function submitHisa(){
+  const memberId=document.getElementById('hisaMember').value;
+  const count=parseInt(document.getElementById('hisaCount').value)||0;
+  const date=document.getElementById('hisaDate').value||today();
+  if(!memberId){showNotif('Chagua mwanachama!','error');return;}
+  if(count<1){showNotif('Idadi ya hisa lazima iwe 1 au zaidi!','error');return;}
+  const mRows = await SB.get('members',{id:memberId});
+  const member = mRows[0]; if(!member) return;
+  showLoading('Inatuma...');
+  await SB.insert('hisa_updates',{
+    id:'h_'+Date.now(), member_id:memberId,
+    member_name:member.full_name, count:count,
+    date:date, status:'pending'
+  });
+  hideLoading();
+  document.getElementById('hisaCount').value='';
+  showNotif(`Ombi la kuongeza hisa ${count} kwa ${member.full_name} limetumwa kwa Mwenyekiti!`);
+  await refreshMhStats();
+}
+
+async function submitExpense(){
+  const title=document.getElementById('expTitle').value.trim();
+  const amount=parseFloat(document.getElementById('expAmount').value)||0;
+  const date=document.getElementById('expDate').value||today();
+  const desc=document.getElementById('expDesc').value.trim();
+  if(!title||!amount){showNotif('Jaza kichwa na kiasi!','error');return;}
+  showLoading('Inahifadhi...');
+  await SB.insert('expenses',{id:'e_'+Date.now(),title,amount,date,description:desc});
+  hideLoading();
+  ['expTitle','expAmount','expDesc'].forEach(id=>document.getElementById(id).value='');
+  showNotif('Matumizi yamehifadhiwa!');
+  await refreshMhStats();
+}
+
+async function renderExpTable(){
+  const exps = await SB.get('expenses');
+  const tb = document.getElementById('expTable');
+  if(!exps.length){tb.innerHTML='<tr><td colspan="3" style="text-align:center;color:rgba(255,255,255,.3);padding:20px">Hakuna matumizi</td></tr>';return;}
+  tb.innerHTML = exps.map(e=>`<tr><td>${e.date}</td><td>${e.title}</td><td>TSh ${fmt(e.amount)}</td></tr>`).join('');
+  document.getElementById('mhTotalExp').textContent='TSh '+fmt(exps.reduce((s,e)=>s+parseFloat(e.amount),0));
+}
+
+async function loadMemberLoan(){
+  const memberId=document.getElementById('payMember').value;
+  const loans = await SB.getWhere('loans',[
+    {col:'member_id',op:'eq',val:memberId},{col:'status',op:'eq',val:'approved'}
+  ]);
+  const activeLoan = loans.find(l=>l.repaid_status!=='paid');
+  const info = document.getElementById('loanPayInfo');
+  if(!activeLoan){info.style.display='none';showNotif('Mwanachama huyu hana mkopo unaoendelea.','warn');return;}
+  info.style.display='block';
+  document.getElementById('payLoanAmt').textContent='TSh '+fmt(activeLoan.amount);
+  document.getElementById('payLoanTotal').textContent='TSh '+fmt(activeLoan.total_repay);
+  document.getElementById('payLoanPaid').textContent='TSh '+fmt(activeLoan.paid_amount||0);
+  document.getElementById('payLoanRemain').textContent='TSh '+fmt(activeLoan.total_repay-(activeLoan.paid_amount||0));
+  document.getElementById('payLoanDue').textContent=activeLoan.due_date;
+  document.getElementById('payDate').value=today();
+  document.getElementById('loanPayInfo').dataset.loanId=activeLoan.id;
+}
+
+async function recordPayment(){
+  const payAmt=parseFloat(document.getElementById('payAmount').value)||0;
+  const payDate=document.getElementById('payDate').value||today();
+  const loanId=document.getElementById('loanPayInfo').dataset.loanId;
+  if(payAmt<1){showNotif('Ingiza kiasi cha malipo!','error');return;}
+  if(!loanId){showNotif('Hakuna mkopo unaoendelea!','error');return;}
+  showLoading('Inalandikisha malipo...');
+  const loanRows = await SB.get('loans',{id:loanId});
+  const loan = loanRows[0]; if(!loan){hideLoading();return;}
+  const newPaid = (parseFloat(loan.paid_amount)||0) + payAmt;
+  const newStatus = newPaid >= parseFloat(loan.total_repay) ? 'paid' : 'partial';
+  await Promise.all([
+    SB.update('loans',{id:loanId},{paid_amount:newPaid,repaid_status:newStatus}),
+    SB.insert('loan_payments',{id:'lp_'+Date.now(),loan_id:loanId,member_id:loan.member_id,pay_amount:payAmt,pay_date:payDate})
+  ]);
+  hideLoading();
+  if(newStatus==='paid') showNotif('Mkopo umelipwa kikamilifu! 🎉');
+  else showNotif('Malipo yamesajiliwa. Kilichobaki: TSh '+fmt(loan.total_repay-newPaid));
+  await loadMemberLoan();
+  await refreshMhStats();
+}
+
+async function generateReport(){
+  showLoading('Inaunda ripoti...');
+  const [members, loans, expenses] = await Promise.all([
+    SB.get('members',{status:'approved'}),
+    SB.get('loans',{status:'approved'}),
+    SB.get('expenses')
+  ]);
+  hideLoading();
+  const totalHisa=members.reduce((s,m)=>s+(m.hisa||0),0);
+  const totalGiven=loans.reduce((s,l)=>s+parseFloat(l.amount),0);
+  const totalPaid=loans.reduce((s,l)=>s+(parseFloat(l.paid_amount)||0),0);
+  const totalRepay=loans.reduce((s,l)=>s+parseFloat(l.total_repay),0);
+  const unpaid=Math.max(0,totalRepay-totalPaid);
+  const profit=totalPaid*0.1;
+  const totalExp=expenses.reduce((s,e)=>s+parseFloat(e.amount),0);
+  const netProfit=Math.max(0,profit-totalExp);
+  const perHisa=totalHisa>0?netProfit/totalHisa:0;
+
+  const rows=members.map(m=>{
+    const mL=loans.filter(l=>l.member_id===m.id);
+    const given=mL.reduce((s,l)=>s+parseFloat(l.amount),0);
+    const paid=mL.reduce((s,l)=>s+(parseFloat(l.paid_amount)||0),0);
+    const remain=Math.max(0,mL.reduce((s,l)=>s+parseFloat(l.total_repay),0)-paid);
+    const partial=mL.filter(l=>l.repaid_status==='partial').length;
+    return `<tr><td>${m.full_name}</td><td>${m.phone}</td><td>${m.hisa||0}</td><td>TSh ${fmt((m.hisa||0)*100000)}</td><td>TSh ${fmt(given)}</td><td>TSh ${fmt(paid)}</td><td>${partial} mkopo</td><td>TSh ${fmt(remain)}</td></tr>`;
+  }).join('');
+
+  document.getElementById('reportContent').innerHTML=`
+    <div class="report-summary">
+      <h4>Muhtasari wa Kikundi - RISE UP — ${today()}</h4>
+      <div class="report-grid">
+        <div class="report-item"><div class="r-val">${totalHisa}</div><div class="r-lbl">Jumla ya Hisa</div></div>
+        <div class="report-item"><div class="r-val">TSh ${fmt(totalHisa*100000)}</div><div class="r-lbl">Thamani ya Hisa</div></div>
+        <div class="report-item"><div class="r-val">TSh ${fmt(totalGiven)}</div><div class="r-lbl">Mikopo Iliyotolewa</div></div>
+        <div class="report-item"><div class="r-val">TSh ${fmt(totalPaid)}</div><div class="r-lbl">Kilicholipwa</div></div>
+        <div class="report-item"><div class="r-val">TSh ${fmt(unpaid)}</div><div class="r-lbl">Kilichobaki</div></div>
+        <div class="report-item"><div class="r-val">TSh ${fmt(netProfit)}</div><div class="r-lbl">Faida Halisi</div></div>
+        <div class="report-item"><div class="r-val">TSh ${fmt(totalExp)}</div><div class="r-lbl">Matumizi</div></div>
+        <div class="report-item"><div class="r-val">TSh ${fmt(perHisa)}</div><div class="r-lbl">Faida/Hisa</div></div>
+        <div class="report-item"><div class="r-val">${members.length}</div><div class="r-lbl">Wanachama</div></div>
+      </div>
+    </div>
+    <div class="table-card"><div class="table-header"><h3>Maelezo kwa Kila Mwanachama</h3></div><div class="table-wrap"><table>
+      <thead><tr><th>Jina</th><th>Simu</th><th>Hisa</th><th>Thamani</th><th>Mkopo</th><th>Kilicholipwa</th><th>Inayoendelea</th><th>Kilichobaki</th></tr></thead>
+      <tbody>${rows||'<tr><td colspan="8" style="text-align:center;padding:20px;color:rgba(255,255,255,.3)">Hakuna wanachama</td></tr>'}</tbody>
+    </table></div></div>
+    <div class="table-card" style="margin-top:16px"><div class="table-header"><h3>Matumizi ya Kikundi</h3></div><div class="table-wrap"><table>
+      <thead><tr><th>Tarehe</th><th>Kichwa</th><th>Kiasi</th><th>Maelezo</th></tr></thead>
+      <tbody>${expenses.map(e=>`<tr><td>${e.date}</td><td>${e.title}</td><td>TSh ${fmt(e.amount)}</td><td>${e.description||'—'}</td></tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:20px;color:rgba(255,255,255,.3)">Hakuna matumizi</td></tr>'}</tbody>
+    </table></div></div>`;
+}
+
+async function showMhSection(id){
+  document.querySelectorAll('#mhaziniDash .dash-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('#mhaziniDash .nav-tab').forEach(n=>n.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const navMap={mhHome:0,mhMikopo:1,mhHisa:2,mhMatumizi:3,mhRipoti:4,mhLipaMkopo:5};
+  const desktopTabs=document.querySelectorAll('#mhaziniDash .topbar-nav .nav-tab');
+  const mobileTabs=document.querySelectorAll('#mhMobileNav .nav-tab');
+  if(navMap[id]!==undefined){desktopTabs[navMap[id]]?.classList.add('active');mobileTabs[navMap[id]]?.classList.add('active');}
+  if(id==='mhRipoti') await generateReport();
+  if(id==='mhLipaMkopo'){await populateMhaziniSelects();document.getElementById('loanPayInfo').style.display='none';}
+  await refreshMhStats();
+}
+
+// ============================================================
+// MWENYEKITI DASHBOARD
+// ============================================================
+async function loadMwenyekitiDash(){
+  showScreen('mwenyekitiDash');
+  await refreshMkStats();
+}
+
+async function refreshMkStats(){
+  const [members, reqs, loans, hisaUpdates] = await Promise.all([
+    SB.get('members',{status:'approved'}),
+    SB.get('registration_requests',{status:'pending'}),
+    SB.get('loans',{status:'pending_mwenyekiti'}),
+    SB.get('hisa_updates',{status:'pending'})
+  ]);
+  document.getElementById('mkMembersCount').textContent=members.length;
+  document.getElementById('mkPendingRegs').textContent=reqs.length;
+  document.getElementById('mkPendingLoans').textContent=loans.length;
+  document.getElementById('mkPendingHisa').textContent=hisaUpdates.length;
+  await Promise.all([
+    renderMkRegRequests('mkRegRequests'), renderMkRegRequests('mkRegTable'),
+    renderMkLoanTable(), renderMkHisaTable(),
+    renderMkAllMembers(), renderMkFinalLoansHome()
+  ]);
+}
+
+async function renderMkRegRequests(tbId){
+  const reqs = await SB.get('registration_requests',{status:'pending'});
+  const tb = document.getElementById(tbId);
+  if(!reqs.length){tb.innerHTML='<tr><td colspan="4" style="text-align:center;color:rgba(255,255,255,.3);padding:20px">Hakuna maombi</td></tr>';return;}
+  tb.innerHTML=reqs.map(r=>`
+    <tr>
+      <td>${r.full_name}</td><td>${r.phone}</td><td>${r.username}</td>
+      ${tbId==='mkRegTable'?`<td>${r.request_date||today()}</td>`:''}
+      <td style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn-sm btn-approve" onclick="mkRegAction('${r.id}','approve')">Idhinisha</button>
+        <button class="btn-sm btn-reject"  onclick="mkRegAction('${r.id}','reject')">Kataa</button>
+      </td>
+    </tr>`).join('');
+}
+
+async function mkRegAction(memberId, action){
+  const mRows = await SB.get('members',{id:memberId});
+  const m = mRows[0]; if(!m) return;
+  showLoading('Inasasisha...');
+  if(action==='approve'){
+    await Promise.all([
+      SB.update('members',{id:memberId},{status:'approved',approved_at:new Date().toISOString()}),
+      SB.update('registration_requests',{id:memberId},{status:'approved'})
+    ]);
+    hideLoading();
+    showNotif(`${m.full_name} ameidhinishwa kama mwanachama!`);
+    simulateSMS(m.phone,`RISE UP: Hongera ${m.first_name}! Umekubaliwa kama mwanachama wa kikundi cha RISE UP. Unaweza sasa kuingia mfumoni.`);
+    simulateWhatsApp(m.phone,`RISE UP: Karibu ${m.first_name}! Ombi lako la kujiunga na RISE UP limekubaliwa. Unaweza sasa kuingia na kuanza kutumia huduma.`);
+    flushMsgQueue();
+  } else {
+    await Promise.all([
+      SB.update('members',{id:memberId},{status:'rejected'}),
+      SB.update('registration_requests',{id:memberId},{status:'rejected'})
+    ]);
+    hideLoading();
+    showNotif(`Ombi la ${m.full_name} limekataliwa.`,'warn');
+    simulateSMS(m.phone,`RISE UP: Samahani, ombi lako la kujiunga na kikundi cha RISE UP limekataliwa. Wasiliana na Mwenyekiti kwa maelezo.`);
+    flushMsgQueue();
+  }
+  await refreshMkStats();
+}
+
+async function renderMkLoanTable(){
+  const loans = await SB.get('loans',{status:'pending_mwenyekiti'});
+  const tb = document.getElementById('mkLoanTable');
+  if(!loans.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:rgba(255,255,255,.3);padding:20px">Hakuna mikopo inayosubiri</td></tr>';return;}
+  tb.innerHTML=loans.map(l=>`<tr>
+    <td>${l.member_name}</td><td>TSh ${fmt(l.amount)}</td>
+    <td>TSh ${fmt(l.riba)}</td><td>TSh ${fmt(l.total_repay)}</td>
+    <td>${l.request_date}</td>
+    <td style="display:flex;gap:6px">
+      <button class="btn-sm btn-approve" onclick="mkLoanAction('${l.id}','approve')">Idhinisha</button>
+      <button class="btn-sm btn-reject"  onclick="mkLoanAction('${l.id}','reject')">Kataa</button>
+    </td>
+  </tr>`).join('');
+}
+
+async function renderMkFinalLoansHome(){
+  const loans = await SB.get('loans',{status:'pending_mwenyekiti'});
+  const tb = document.getElementById('mkLoanFinalTable');
+  if(!loans.length){tb.innerHTML='<tr><td colspan="5" style="text-align:center;color:rgba(255,255,255,.3);padding:20px">Hakuna</td></tr>';return;}
+  tb.innerHTML=loans.map(l=>`<tr>
+    <td>${l.member_name}</td><td>TSh ${fmt(l.amount)}</td>
+    <td>TSh ${fmt(l.total_repay)}</td><td>${l.request_date}</td>
+    <td style="display:flex;gap:6px">
+      <button class="btn-sm btn-approve" onclick="mkLoanAction('${l.id}','approve')">Idhinisha</button>
+      <button class="btn-sm btn-reject"  onclick="mkLoanAction('${l.id}','reject')">Kataa</button>
+    </td>
+  </tr>`).join('');
+}
+
+async function mkLoanAction(loanId, action){
+  const lRows = await SB.get('loans',{id:loanId});
+  const loan = lRows[0]; if(!loan) return;
+  showLoading('Inasasisha...');
+  if(action==='approve'){
+    await SB.update('loans',{id:loanId},{status:'approved',approved_date:today(),repaid_status:'pending'});
+    hideLoading();
+    showNotif(`Mkopo wa ${loan.member_name} umeidhinishwa kikamilifu!`);
+    simulateSMS(loan.member_phone,`RISE UP: Hongera! Mkopo wako wa TSh ${fmt(loan.amount)} umeidhinishwa. Utatakiwa kurejesha TSh ${fmt(loan.total_repay)} kabla ya ${loan.due_date}.`);
+    simulateWhatsApp(loan.member_phone,`RISE UP: Mkopo wako wa TSh ${fmt(loan.amount)} umeidhinishwa na Mwenyekiti. Tafadhali rejesha TSh ${fmt(loan.total_repay)} kabla ya tarehe ${loan.due_date}.`);
+    flushMsgQueue();
+  } else {
+    await SB.update('loans',{id:loanId},{status:'rejected',repaid_status:'rejected'});
+    hideLoading();
+    showNotif('Mkopo umekataliwa.','warn');
+    simulateSMS(loan.member_phone,`RISE UP: Samahani, ombi lako la mkopo wa TSh ${fmt(loan.amount)} limekataliwa na Mwenyekiti.`);
+    flushMsgQueue();
+  }
+  await refreshMkStats();
+}
+
+async function renderMkHisaTable(){
+  const updates = await SB.get('hisa_updates',{status:'pending'});
+  const tb = document.getElementById('mkHisaTable');
+  if(!updates.length){tb.innerHTML='<tr><td colspan="5" style="text-align:center;color:rgba(255,255,255,.3);padding:20px">Hakuna hisa zinazosubiri</td></tr>';return;}
+  tb.innerHTML=updates.map(h=>`<tr>
+    <td>${h.member_name}</td><td>${h.count}</td>
+    <td>TSh ${fmt(h.count*100000)}</td><td>${h.date}</td>
+    <td style="display:flex;gap:6px">
+      <button class="btn-sm btn-approve" onclick="mkHisaAction('${h.id}','approve')">Thibitisha</button>
+      <button class="btn-sm btn-reject"  onclick="mkHisaAction('${h.id}','reject')">Kataa</button>
+    </td>
+  </tr>`).join('');
+}
+
+async function mkHisaAction(updateId, action){
+  const uRows = await SB.get('hisa_updates',{id:updateId});
+  const update = uRows[0]; if(!update) return;
+  showLoading('Inasasisha...');
+  if(action==='approve'){
+    const mRows = await SB.get('members',{id:update.member_id});
+    const m = mRows[0];
+    const newHisa = (m?.hisa||0) + update.count;
+    await Promise.all([
+      SB.update('hisa_updates',{id:updateId},{status:'approved'}),
+      SB.update('members',{id:update.member_id},{hisa:newHisa})
+    ]);
+    hideLoading();
+    showNotif(`Hisa ${update.count} za ${update.member_name} zimethibitishwa!`);
+    simulateSMS(m?.phone||'',`RISE UP: Hisa ${update.count} zimeongezwa kwenye akaunti yako. Sasa una jumla ya hisa ${newHisa}.`);
+    flushMsgQueue();
+  } else {
+    await SB.update('hisa_updates',{id:updateId},{status:'rejected'});
+    hideLoading();
+    showNotif('Hisa zimekataliwa.','warn');
+  }
+  await refreshMkStats();
+}
+
+async function renderMkAllMembers(){
+  const [members, loans] = await Promise.all([
+    SB.get('members',{status:'approved'}),
+    SB.get('loans',{status:'approved'})
+  ]);
+  const tb = document.getElementById('mkAllMembers');
+  if(!members.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:rgba(255,255,255,.3);padding:20px">Hakuna wanachama</td></tr>';return;}
+  tb.innerHTML=members.map((m,i)=>{
+    const activeLoan=loans.find(l=>l.member_id===m.id&&l.repaid_status!=='paid');
+    const hasLoan=!!activeLoan;
+    return `<tr>
+      <td>${i+1}</td><td>${m.full_name}</td><td>${m.phone}</td>
+      <td>${m.hisa||0} (TSh ${fmt((m.hisa||0)*100000)})</td>
+      <td>${hasLoan?'<span style="color:#f0a060">TSh '+fmt(activeLoan.amount)+'</span>':'Hakuna'}</td>
+      <td><span class="badge badge-approved">Hai</span></td>
+      <td><button class="btn-sm btn-reject" onclick="confirmDeleteMember('${m.id}','${m.full_name.replace(/'/g,'')}',${hasLoan})" title="Futa mwanachama huyu">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="vertical-align:-2px;margin-right:4px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>Futa
+      </button></td>
+    </tr>`;
+  }).join('');
+}
+
+function confirmDeleteMember(memberId, memberName, hasLoan){
+  pendingDeleteId=memberId; pendingDeleteName=memberName;
+  const warn=hasLoan?`<br><br><strong style="color:#f0a060">⚠️ Tahadhari: Mwanachama huyu ana mkopo unaoendelea.</strong>`:'';
+  document.getElementById('deleteMemberName').textContent=memberName;
+  document.getElementById('deleteWarn').innerHTML=warn;
+  document.getElementById('deleteMemberModal').style.display='flex';
+}
+
+async function doDeleteMember(){
+  if(!pendingDeleteId) return;
+  showLoading('Inafuta...');
+  const mRows = await SB.get('members',{id:pendingDeleteId});
+  const m = mRows[0];
+  await Promise.all([
+    SB.delete('members',{id:pendingDeleteId}),
+    SB.delete('registration_requests',{id:pendingDeleteId}),
+    SB.delete('loans',{member_id:pendingDeleteId}),
+    SB.delete('hisa_updates',{member_id:pendingDeleteId})
+  ]);
+  hideLoading();
+  document.getElementById('deleteMemberModal').style.display='none';
+  showNotif(`${pendingDeleteName} amefutwa kutoka kikundi.`,'warn');
+  if(m?.phone){
+    simulateSMS(m.phone,`RISE UP: Habari ${m.first_name||pendingDeleteName}, umefutwa kwenye orodha ya wanachama wa kikundi cha RISE UP. Wasiliana na Mwenyekiti kwa maelezo zaidi.`);
+    flushMsgQueue();
+  }
+  pendingDeleteId=null; pendingDeleteName=null;
+  await refreshMkStats();
+}
+
+async function showMkSection(id){
+  document.querySelectorAll('#mwenyekitiDash .dash-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('#mwenyekitiDash .nav-tab').forEach(n=>n.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const navMap={mkHome:0,mkWanachama:1,mkMikopo:2,mkHisa:3,mkWanachama2:4};
+  const desktopTabs=document.querySelectorAll('#mwenyekitiDash .topbar-nav .nav-tab');
+  const mobileTabs=document.querySelectorAll('#mkMobileNav .nav-tab');
+  if(navMap[id]!==undefined){desktopTabs[navMap[id]]?.classList.add('active');mobileTabs[navMap[id]]?.classList.add('active');}
+  await refreshMkStats();
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function doLogout(){
+  currentUser=null;
+  showScreen('loginScreen');
+  document.getElementById('loginUsername').value='';
+  document.getElementById('loginPassword').value='';
+}
+
+function showNotif(msg,type='success'){
+  const n=document.getElementById('notif');
+  n.className='notif'+(type==='error'?' error':type==='warn'?' warn':'');
+  document.getElementById('notifText').textContent=msg;
+  n.style.display='flex';
+  setTimeout(()=>n.style.display='none',4500);
+}
+
+function fmt(n){ return Math.round(n||0).toLocaleString('en-US'); }
+function today(){ return new Date().toISOString().split('T')[0]; }
+function toggleMobileNav(id){ const el=document.getElementById(id); if(el) el.classList.toggle('open'); }
+function closeMobileNav(id){ const el=document.getElementById(id); if(el) el.classList.remove('open'); }
+function addMonths(dateStr,months){ const d=new Date(dateStr); d.setMonth(d.getMonth()+months); return d.toISOString().split('T')[0]; }
+</script>
+
+<!-- ═══ MESSAGE SEND PANEL ═══ -->
+<div id="msgPanel" style="display:none;position:fixed;inset:0;z-index:2000;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.55);padding:20px">
+  <div style="background:#111d17;border:1px solid rgba(200,151,42,.3);border-radius:18px 18px 18px 18px;width:100%;max-width:480px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.6)">
+    <!-- header -->
+    <div style="background:rgba(200,151,42,.12);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(200,151,42,.18)">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#1a6b4a,#c8972a);display:flex;align-items:center;justify-content:center;font-size:14px">📨</div>
+        <div>
+          <div style="color:#fff;font-weight:700;font-size:14px;font-family:'Outfit',sans-serif">Tuma Arifa</div>
+          <div style="color:rgba(255,255,255,.45);font-size:11px">Bonyeza kila kitufe ili kutuma ujumbe</div>
+        </div>
+      </div>
+      <button onclick="closeMsgPanel()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);border-radius:8px;padding:5px 12px;cursor:pointer;font-size:13px;font-family:inherit">Funga ✕</button>
+    </div>
+    <!-- list -->
+    <div id="msgList" style="padding:12px 16px;display:flex;flex-direction:column;gap:10px;max-height:60vh;overflow-y:auto"></div>
+    <!-- footer -->
+    <div style="padding:10px 16px 14px;border-top:1px solid rgba(255,255,255,.06);text-align:center">
+      <span style="font-size:11.5px;color:rgba(255,255,255,.3)">Baada ya kutuma ujumbe wote, bonyeza Funga</span>
+    </div>
+  </div>
+</div>
+
+<style>
+.msg-item{display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(255,255,255,.05);border-radius:10px;padding:10px 12px;border:1px solid rgba(255,255,255,.07)}
+.msg-meta{flex:1;overflow:hidden}
+.msg-num{display:block;font-size:12px;font-weight:700;color:rgba(255,255,255,.7);margin-bottom:2px;font-family:'Outfit',sans-serif}
+.msg-preview{display:block;font-size:11.5px;color:rgba(255,255,255,.35);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msg-btn{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:8px;font-size:12.5px;font-weight:700;text-decoration:none;flex-shrink:0;transition:.2s;font-family:'Plus Jakarta Sans',sans-serif;white-space:nowrap}
+.msg-btn-sms{background:rgba(21,101,192,.25);color:#82b1e8;border:1px solid rgba(21,101,192,.4)}
+.msg-btn-sms:hover{background:#1565c0;color:#fff}
+.msg-btn-wa{background:rgba(37,211,102,.15);color:#4ade80;border:1px solid rgba(37,211,102,.3)}
+.msg-btn-wa:hover{background:#128c3f;color:#fff}
+</style>
+
+</body>
+</html>
