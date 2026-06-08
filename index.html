@@ -1104,10 +1104,18 @@ async function doRegister(){
     // Insert member
     await SB.insert('members', {
       id: memberId, first_name: fn, last_name: ln,
+      full_name: fn + ' ' + ln,
       phone: ph, username: un, password: pw,
       status: 'pending', hisa: 0, role: 'mwanachama',
       join_date: today()
     });
+    // Verify the member was actually saved (Supabase return representation can fail even on success)
+    const verifyRows = await SB.get('members', {id: memberId});
+    if(!verifyRows.length){
+      hideLoading();
+      showNotif('Hitilafu ya mfumo: Kumbukumbu haikuhifadhiwa. Jaribu tena!','error');
+      return;
+    }
     // Insert registration request
     await SB.insert('registration_requests', {
       id: memberId, full_name: fn+' '+ln,
@@ -1382,24 +1390,33 @@ async function renderMhLoanRequests(){
 }
 
 async function mhLoanAction(loanId, action){
-  const loans = await SB.get('loans',{id:loanId});
-  const loan  = loans[0]; if(!loan) return;
-  showLoading('Inasasisha...');
-  if(action==='approve'){
-    await SB.update('loans',{id:loanId},{status:'pending_mwenyekiti'});
+  try {
+    const loans = await SB.get('loans',{id:loanId});
+    const loan  = loans[0];
+    if(!loan){ showNotif('Hitilafu: Mkopo hauonekani kwenye mfumo.','error'); return; }
+    showLoading('Inasasisha...');
+    if(action==='approve'){
+      const res = await SB.update('loans',{id:loanId},{status:'pending_mwenyekiti'});
+      hideLoading();
+      if(!res){ showNotif('Hitilafu ya kuhifadhi. Angalia Supabase RLS policies.','error'); return; }
+      showNotif('Mkopo umeidhinishwa! Umetumwa kwa Mwenyekiti.');
+      simulateSMS('0784054321',`RISE UP: Mhazini ameidhinisha mkopo wa TSh ${fmt(loan.amount)} wa ${loan.member_name}. Tafadhali angalia dashibodi kwa idhini ya mwisho.`);
+      simulateWhatsApp('0784054321',`RISE UP: Mkopo wa ${loan.member_name} (TSh ${fmt(loan.amount)}) umeidhinishwa na Mhazini. Inahitaji idhini yako.`);
+      flushMsgQueue();
+    } else {
+      const res = await SB.update('loans',{id:loanId},{status:'rejected',repaid_status:'rejected'});
+      hideLoading();
+      if(!res){ showNotif('Hitilafu ya kuhifadhi. Angalia Supabase RLS policies.','error'); return; }
+      showNotif('Mkopo umekataliwa.','warn');
+      simulateSMS(loan.member_phone,`RISE UP: Samahani, ombi lako la mkopo wa TSh ${fmt(loan.amount)} limekataliwa na Mhazini.`);
+      flushMsgQueue();
+    }
+    await refreshMhStats();
+  } catch(e) {
     hideLoading();
-    showNotif('Mkopo umeidhinishwa! Umetumwa kwa Mwenyekiti.');
-    simulateSMS('0784054321',`RISE UP: Mhazini ameidhinisha mkopo wa TSh ${fmt(loan.amount)} wa ${loan.member_name}. Tafadhali angalia dashibodi kwa idhini ya mwisho.`);
-    simulateWhatsApp('0784054321',`RISE UP: Mkopo wa ${loan.member_name} (TSh ${fmt(loan.amount)}) umeidhinishwa na Mhazini. Inahitaji idhini yako.`);
-    flushMsgQueue();
-  } else {
-    await SB.update('loans',{id:loanId},{status:'rejected',repaid_status:'rejected'});
-    hideLoading();
-    showNotif('Mkopo umekataliwa.','warn');
-    simulateSMS(loan.member_phone,`RISE UP: Samahani, ombi lako la mkopo wa TSh ${fmt(loan.amount)} limekataliwa na Mhazini.`);
-    flushMsgQueue();
+    showNotif('Hitilafu ya mtandao. Jaribu tena!','error');
+    console.error('mhLoanAction error:', e);
   }
-  await refreshMhStats();
 }
 
 async function renderMhHisaTable(){
@@ -1624,30 +1641,39 @@ async function renderMkRegRequests(tbId){
 }
 
 async function mkRegAction(memberId, action){
-  const mRows = await SB.get('members',{id:memberId});
-  const m = mRows[0]; if(!m) return;
-  showLoading('Inasasisha...');
-  if(action==='approve'){
-    await Promise.all([
-      SB.update('members',{id:memberId},{status:'approved',approved_at:new Date().toISOString()}),
-      SB.update('registration_requests',{id:memberId},{status:'approved'})
-    ]);
+  try {
+    const mRows = await SB.get('members',{id:memberId});
+    const m = mRows[0];
+    if(!m){ showNotif('Hitilafu: Mwanachama haonekani kwenye mfumo. Wasiliana na msimamizi.','error'); return; }
+    showLoading('Inasasisha...');
+    if(action==='approve'){
+      const res = await Promise.all([
+        SB.update('members',{id:memberId},{status:'approved',approved_at:new Date().toISOString()}),
+        SB.update('registration_requests',{id:memberId},{status:'approved'})
+      ]);
+      hideLoading();
+      if(!res[0] && !res[1]){ showNotif('Hitilafu ya kuhifadhi. Angalia Supabase RLS policies.','error'); return; }
+      showNotif(`${m.full_name||m.first_name} ameidhinishwa kama mwanachama!`);
+      simulateSMS(m.phone,`RISE UP: Hongera ${m.first_name}! Umekubaliwa kama mwanachama wa kikundi cha RISE UP. Unaweza sasa kuingia mfumoni.`);
+      simulateWhatsApp(m.phone,`RISE UP: Karibu ${m.first_name}! Ombi lako la kujiunga na RISE UP limekubaliwa. Unaweza sasa kuingia na kuanza kutumia huduma.`);
+      flushMsgQueue();
+    } else {
+      const res = await Promise.all([
+        SB.update('members',{id:memberId},{status:'rejected'}),
+        SB.update('registration_requests',{id:memberId},{status:'rejected'})
+      ]);
+      hideLoading();
+      if(!res[0] && !res[1]){ showNotif('Hitilafu ya kuhifadhi. Angalia Supabase RLS policies.','error'); return; }
+      showNotif(`Ombi la ${m.full_name||m.first_name} limekataliwa.`,'warn');
+      simulateSMS(m.phone,`RISE UP: Samahani, ombi lako la kujiunga na kikundi cha RISE UP limekataliwa. Wasiliana na Mwenyekiti kwa maelezo.`);
+      flushMsgQueue();
+    }
+    await refreshMkStats();
+  } catch(e) {
     hideLoading();
-    showNotif(`${m.full_name} ameidhinishwa kama mwanachama!`);
-    simulateSMS(m.phone,`RISE UP: Hongera ${m.first_name}! Umekubaliwa kama mwanachama wa kikundi cha RISE UP. Unaweza sasa kuingia mfumoni.`);
-    simulateWhatsApp(m.phone,`RISE UP: Karibu ${m.first_name}! Ombi lako la kujiunga na RISE UP limekubaliwa. Unaweza sasa kuingia na kuanza kutumia huduma.`);
-    flushMsgQueue();
-  } else {
-    await Promise.all([
-      SB.update('members',{id:memberId},{status:'rejected'}),
-      SB.update('registration_requests',{id:memberId},{status:'rejected'})
-    ]);
-    hideLoading();
-    showNotif(`Ombi la ${m.full_name} limekataliwa.`,'warn');
-    simulateSMS(m.phone,`RISE UP: Samahani, ombi lako la kujiunga na kikundi cha RISE UP limekataliwa. Wasiliana na Mwenyekiti kwa maelezo.`);
-    flushMsgQueue();
+    showNotif('Hitilafu ya mtandao. Jaribu tena!','error');
+    console.error('mkRegAction error:', e);
   }
-  await refreshMkStats();
 }
 
 async function renderMkLoanTable(){
@@ -1680,24 +1706,33 @@ async function renderMkFinalLoansHome(){
 }
 
 async function mkLoanAction(loanId, action){
-  const lRows = await SB.get('loans',{id:loanId});
-  const loan = lRows[0]; if(!loan) return;
-  showLoading('Inasasisha...');
-  if(action==='approve'){
-    await SB.update('loans',{id:loanId},{status:'approved',approved_date:today(),repaid_status:'pending'});
+  try {
+    const lRows = await SB.get('loans',{id:loanId});
+    const loan = lRows[0];
+    if(!loan){ showNotif('Hitilafu: Mkopo hauonekani kwenye mfumo.','error'); return; }
+    showLoading('Inasasisha...');
+    if(action==='approve'){
+      const res = await SB.update('loans',{id:loanId},{status:'approved',approved_date:today(),repaid_status:'pending'});
+      hideLoading();
+      if(!res){ showNotif('Hitilafu ya kuhifadhi. Angalia Supabase RLS policies.','error'); return; }
+      showNotif(`Mkopo wa ${loan.member_name} umeidhinishwa kikamilifu!`);
+      simulateSMS(loan.member_phone,`RISE UP: Hongera! Mkopo wako wa TSh ${fmt(loan.amount)} umeidhinishwa. Utatakiwa kurejesha TSh ${fmt(loan.total_repay)} kabla ya ${loan.due_date}.`);
+      simulateWhatsApp(loan.member_phone,`RISE UP: Mkopo wako wa TSh ${fmt(loan.amount)} umeidhinishwa na Mwenyekiti. Tafadhali rejesha TSh ${fmt(loan.total_repay)} kabla ya tarehe ${loan.due_date}.`);
+      flushMsgQueue();
+    } else {
+      const res = await SB.update('loans',{id:loanId},{status:'rejected',repaid_status:'rejected'});
+      hideLoading();
+      if(!res){ showNotif('Hitilafu ya kuhifadhi. Angalia Supabase RLS policies.','error'); return; }
+      showNotif('Mkopo umekataliwa.','warn');
+      simulateSMS(loan.member_phone,`RISE UP: Samahani, ombi lako la mkopo wa TSh ${fmt(loan.amount)} limekataliwa na Mwenyekiti.`);
+      flushMsgQueue();
+    }
+    await refreshMkStats();
+  } catch(e) {
     hideLoading();
-    showNotif(`Mkopo wa ${loan.member_name} umeidhinishwa kikamilifu!`);
-    simulateSMS(loan.member_phone,`RISE UP: Hongera! Mkopo wako wa TSh ${fmt(loan.amount)} umeidhinishwa. Utatakiwa kurejesha TSh ${fmt(loan.total_repay)} kabla ya ${loan.due_date}.`);
-    simulateWhatsApp(loan.member_phone,`RISE UP: Mkopo wako wa TSh ${fmt(loan.amount)} umeidhinishwa na Mwenyekiti. Tafadhali rejesha TSh ${fmt(loan.total_repay)} kabla ya tarehe ${loan.due_date}.`);
-    flushMsgQueue();
-  } else {
-    await SB.update('loans',{id:loanId},{status:'rejected',repaid_status:'rejected'});
-    hideLoading();
-    showNotif('Mkopo umekataliwa.','warn');
-    simulateSMS(loan.member_phone,`RISE UP: Samahani, ombi lako la mkopo wa TSh ${fmt(loan.amount)} limekataliwa na Mwenyekiti.`);
-    flushMsgQueue();
+    showNotif('Hitilafu ya mtandao. Jaribu tena!','error');
+    console.error('mkLoanAction error:', e);
   }
-  await refreshMkStats();
 }
 
 async function renderMkHisaTable(){
@@ -1715,27 +1750,36 @@ async function renderMkHisaTable(){
 }
 
 async function mkHisaAction(updateId, action){
-  const uRows = await SB.get('hisa_updates',{id:updateId});
-  const update = uRows[0]; if(!update) return;
-  showLoading('Inasasisha...');
-  if(action==='approve'){
-    const mRows = await SB.get('members',{id:update.member_id});
-    const m = mRows[0];
-    const newHisa = (m?.hisa||0) + update.count;
-    await Promise.all([
-      SB.update('hisa_updates',{id:updateId},{status:'approved'}),
-      SB.update('members',{id:update.member_id},{hisa:newHisa})
-    ]);
+  try {
+    const uRows = await SB.get('hisa_updates',{id:updateId});
+    const update = uRows[0];
+    if(!update){ showNotif('Hitilafu: Ombi la hisa halipatikani kwenye mfumo.','error'); return; }
+    showLoading('Inasasisha...');
+    if(action==='approve'){
+      const mRows = await SB.get('members',{id:update.member_id});
+      const m = mRows[0];
+      const newHisa = (m?.hisa||0) + update.count;
+      const res = await Promise.all([
+        SB.update('hisa_updates',{id:updateId},{status:'approved'}),
+        SB.update('members',{id:update.member_id},{hisa:newHisa})
+      ]);
+      hideLoading();
+      if(!res[0] && !res[1]){ showNotif('Hitilafu ya kuhifadhi. Angalia Supabase RLS policies.','error'); return; }
+      showNotif(`Hisa ${update.count} za ${update.member_name} zimethibitishwa!`);
+      simulateSMS(m?.phone||'',`RISE UP: Hisa ${update.count} zimeongezwa kwenye akaunti yako. Sasa una jumla ya hisa ${newHisa}.`);
+      flushMsgQueue();
+    } else {
+      const res = await SB.update('hisa_updates',{id:updateId},{status:'rejected'});
+      hideLoading();
+      if(!res){ showNotif('Hitilafu ya kuhifadhi. Angalia Supabase RLS policies.','error'); return; }
+      showNotif('Hisa zimekataliwa.','warn');
+    }
+    await refreshMkStats();
+  } catch(e) {
     hideLoading();
-    showNotif(`Hisa ${update.count} za ${update.member_name} zimethibitishwa!`);
-    simulateSMS(m?.phone||'',`RISE UP: Hisa ${update.count} zimeongezwa kwenye akaunti yako. Sasa una jumla ya hisa ${newHisa}.`);
-    flushMsgQueue();
-  } else {
-    await SB.update('hisa_updates',{id:updateId},{status:'rejected'});
-    hideLoading();
-    showNotif('Hisa zimekataliwa.','warn');
+    showNotif('Hitilafu ya mtandao. Jaribu tena!','error');
+    console.error('mkHisaAction error:', e);
   }
-  await refreshMkStats();
 }
 
 async function renderMkAllMembers(){
@@ -1749,11 +1793,11 @@ async function renderMkAllMembers(){
     const activeLoan=loans.find(l=>l.member_id===m.id&&l.repaid_status!=='paid');
     const hasLoan=!!activeLoan;
     return `<tr>
-      <td>${i+1}</td><td>${m.full_name}</td><td>${m.phone}</td>
+      <td>${i+1}</td><td>${m.full_name||m.first_name+' '+m.last_name}</td><td>${m.phone}</td>
       <td>${m.hisa||0} (TSh ${fmt((m.hisa||0)*100000)})</td>
       <td>${hasLoan?'<span style="color:#f0a060">TSh '+fmt(activeLoan.amount)+'</span>':'Hakuna'}</td>
       <td><span class="badge badge-approved">Hai</span></td>
-      <td><button class="btn-sm btn-reject" onclick="confirmDeleteMember('${m.id}','${m.full_name.replace(/'/g,'')}',${hasLoan})" title="Futa mwanachama huyu">
+      <td><button class="btn-sm btn-reject" onclick="confirmDeleteMember('${m.id}','${(m.full_name||m.first_name+' '+m.last_name).replace(/'/g,'')}',${hasLoan})" title="Futa mwanachama huyu">
         <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="vertical-align:-2px;margin-right:4px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>Futa
       </button></td>
     </tr>`;
