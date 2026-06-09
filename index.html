@@ -298,6 +298,48 @@ tr:hover td{background:rgba(255,255,255,.04)}
   .topbar{padding:0 14px}
   .topbar-brand span{display:none}
 }
+
+/* ── CUSTOM DATE PICKER ── */
+.dp-wrap{position:relative;display:block}
+.dp-wrap input{cursor:pointer}
+.dp-popup{
+  position:absolute;top:calc(100% + 6px);left:0;z-index:9999;
+  background:#0d1a14;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border:1px solid rgba(200,151,42,.35);border-radius:14px;
+  padding:14px;width:272px;
+  box-shadow:0 12px 48px rgba(0,0,0,.7),0 0 0 1px rgba(200,151,42,.08);
+  display:none;
+}
+.dp-popup.dp-open{display:block}
+.dp-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:6px}
+.dp-nav-btn{
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);
+  color:rgba(255,255,255,.8);border-radius:7px;
+  width:30px;height:30px;cursor:pointer;font-size:16px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  transition:.15s;line-height:1;padding:0;font-family:inherit;
+}
+.dp-nav-btn:hover{background:rgba(200,151,42,.25);border-color:rgba(200,151,42,.4);color:#fff}
+.dp-selectors{display:flex;gap:5px;flex:1;justify-content:center}
+.dp-sel{
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);
+  color:#fff;border-radius:7px;padding:4px 7px;font-size:13px;
+  font-family:inherit;cursor:pointer;outline:none;
+}
+.dp-sel:focus{border-color:rgba(200,151,42,.5);box-shadow:0 0 0 2px rgba(200,151,42,.15)}
+.dp-sel option{background:#0d1a14;color:#fff}
+.dp-weekdays{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:4px}
+.dp-wd{text-align:center;font-size:10.5px;font-weight:700;color:rgba(255,255,255,.3);padding:4px 0;text-transform:uppercase}
+.dp-days{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.dp-day{
+  text-align:center;padding:7px 2px;border-radius:7px;
+  font-size:13px;cursor:pointer;color:rgba(255,255,255,.75);
+  border:none;background:transparent;font-family:inherit;transition:.12s;
+}
+.dp-day:hover:not(.dp-empty){background:rgba(200,151,42,.2);color:#fff}
+.dp-empty{visibility:hidden;pointer-events:none}
+.dp-today{color:var(--gold);font-weight:700}
+.dp-selected{background:var(--gold)!important;color:#0a0b1e!important;font-weight:700;border-radius:7px}
 </style>
 </head>
 <body>
@@ -655,7 +697,7 @@ tr:hover td{background:rgba(255,255,255,.04)}
               </div>
               <div class="dash-form-group">
                 <label>Tarehe</label>
-                <input type="date" id="hisaDate">
+                <input type="text" id="hisaDate" placeholder="YYYY-MM-DD" pattern="\d{4}-\d{2}-\d{2}" data-dp readonly>
               </div>
               <button class="dash-btn dash-btn-primary" onclick="submitHisa()">Tuma kwa Mwenyekiti</button>
             </div>
@@ -698,7 +740,7 @@ tr:hover td{background:rgba(255,255,255,.04)}
               </div>
               <div class="dash-form-group">
                 <label>Tarehe</label>
-                <input type="date" id="expDate">
+                <input type="text" id="expDate" placeholder="YYYY-MM-DD" pattern="\d{4}-\d{2}-\d{2}" data-dp readonly>
               </div>
               <div class="dash-form-group">
                 <label>Maelezo</label>
@@ -761,7 +803,7 @@ tr:hover td{background:rgba(255,255,255,.04)}
               </div>
               <div class="dash-form-group">
                 <label>Tarehe ya Malipo</label>
-                <input type="date" id="payDate">
+                <input type="text" id="payDate" placeholder="YYYY-MM-DD" pattern="\d{4}-\d{2}-\d{2}" data-dp readonly>
               </div>
               <button class="dash-btn dash-btn-primary" onclick="recordPayment()">Hifadhi Malipo</button>
             </div>
@@ -1450,6 +1492,7 @@ async function populateMhaziniSelects(){
   ['hisaMember','payMember'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=opts||'<option>Hakuna wanachama</option>'; });
   document.getElementById('hisaDate').value=today();
   document.getElementById('expDate').value=today();
+  initDatePickers();
 }
 
 async function submitHisa(){
@@ -1873,6 +1916,126 @@ function today(){ return new Date().toISOString().split('T')[0]; }
 function toggleMobileNav(id){ const el=document.getElementById(id); if(el) el.classList.toggle('open'); }
 function closeMobileNav(id){ const el=document.getElementById(id); if(el) el.classList.remove('open'); }
 function addMonths(dateStr,months){ const d=new Date(dateStr); d.setMonth(d.getMonth()+months); return d.toISOString().split('T')[0]; }
+
+/* ── CUSTOM DATE PICKER ── */
+(function(){
+  const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const WDS=['Su','Mo','Tu','We','Th','Fr','Sa'];
+  let active=null;
+
+  function parseDate(str){
+    if(!str) return null;
+    const d=new Date(str+'T00:00:00');
+    return isNaN(d.getTime())?null:d;
+  }
+  function pad(n){return String(n).padStart(2,'0');}
+
+  function initPicker(input){
+    if(input._dp) return;
+    /* wrap input */
+    const wrap=document.createElement('div');
+    wrap.className='dp-wrap';
+    input.parentNode.insertBefore(wrap,input);
+    wrap.appendChild(input);
+    /* popup */
+    const popup=document.createElement('div');
+    popup.className='dp-popup';
+    wrap.appendChild(popup);
+
+    let viewYear,viewMonth;
+
+    function getSelected(){return parseDate(input.value);}
+
+    function initView(){
+      const s=getSelected()||new Date();
+      viewYear=s.getFullYear();
+      viewMonth=s.getMonth();
+    }
+
+    function render(){
+      const todayD=new Date();
+      const sel=getSelected();
+      const firstDow=new Date(viewYear,viewMonth,1).getDay();
+      const daysInMo=new Date(viewYear,viewMonth+1,0).getDate();
+
+      const minY=2000, maxY=todayD.getFullYear()+10;
+      let yOpts='';
+      for(let y=maxY;y>=minY;y--){
+        yOpts+=`<option value="${y}"${y===viewYear?' selected':''}>${y}</option>`;
+      }
+      const mOpts=MONTHS.map((m,i)=>`<option value="${i}"${i===viewMonth?' selected':''}>${m}</option>`).join('');
+
+      let days='';
+      for(let i=0;i<firstDow;i++) days+=`<button class="dp-day dp-empty" tabindex="-1"></button>`;
+      for(let d=1;d<=daysInMo;d++){
+        const ds=`${viewYear}-${pad(viewMonth+1)}-${pad(d)}`;
+        const isToday=todayD.getFullYear()===viewYear&&todayD.getMonth()===viewMonth&&todayD.getDate()===d;
+        const isSel=sel&&sel.getFullYear()===viewYear&&sel.getMonth()===viewMonth&&sel.getDate()===d;
+        const cls='dp-day'+(isToday?' dp-today':'')+(isSel?' dp-selected':'');
+        days+=`<button class="${cls}" data-v="${ds}">${d}</button>`;
+      }
+
+      popup.innerHTML=`
+        <div class="dp-head">
+          <button class="dp-nav-btn" data-go="-1">&#8249;</button>
+          <div class="dp-selectors">
+            <select class="dp-sel dp-msel">${mOpts}</select>
+            <select class="dp-sel dp-ysel">${yOpts}</select>
+          </div>
+          <button class="dp-nav-btn" data-go="1">&#8250;</button>
+        </div>
+        <div class="dp-weekdays">${WDS.map(w=>`<div class="dp-wd">${w}</div>`).join('')}</div>
+        <div class="dp-days">${days}</div>`;
+
+      popup.querySelector('[data-go="-1"]').onclick=function(e){
+        e.stopPropagation();
+        viewMonth--;if(viewMonth<0){viewMonth=11;viewYear--;}render();
+      };
+      popup.querySelector('[data-go="1"]').onclick=function(e){
+        e.stopPropagation();
+        viewMonth++;if(viewMonth>11){viewMonth=0;viewYear++;}render();
+      };
+      popup.querySelector('.dp-msel').onchange=function(e){viewMonth=parseInt(e.target.value);render();};
+      popup.querySelector('.dp-ysel').onchange=function(e){viewYear=parseInt(e.target.value);render();};
+      popup.querySelectorAll('.dp-day[data-v]').forEach(function(btn){
+        btn.onclick=function(e){
+          e.stopPropagation();
+          input.value=btn.dataset.v;
+          input.dispatchEvent(new Event('change',{bubbles:true}));
+          close();
+        };
+      });
+    }
+
+    function open(){
+      if(active&&active!==dp) active.close();
+      active=dp;
+      initView();
+      render();
+      popup.classList.add('dp-open');
+    }
+    function close(){
+      popup.classList.remove('dp-open');
+      if(active===dp) active=null;
+    }
+
+    input.addEventListener('click',function(e){e.stopPropagation();popup.classList.contains('dp-open')?close():open();});
+    input.addEventListener('keydown',function(e){if(e.key==='Escape')close();});
+    popup.addEventListener('click',function(e){e.stopPropagation();});
+
+    const dp={open,close,input};
+    input._dp=dp;
+    return dp;
+  }
+
+  document.addEventListener('click',function(){if(active)active.close();});
+
+  window.initDatePickers=function(){
+    document.querySelectorAll('input[data-dp]').forEach(function(el){
+      if(!el._dp) initPicker(el);
+    });
+  };
+})();
 </script>
 
 <!-- ═══ MESSAGE SEND PANEL ═══ -->
