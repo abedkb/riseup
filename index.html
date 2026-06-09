@@ -1287,7 +1287,7 @@ function showMcSection(id){
 function calcLoanPreview(){
   const amt=parseFloat(document.getElementById('loanAmount').value)||0;
   if(amt<1){document.getElementById('loanPreview').style.display='none';return;}
-  const riba=amt*0.1, total=amt+riba, dueDate=addMonths(today(),2);
+  const riba=amt*0.1, total=amt+riba, dueDate=addMonths(today(),1);
   document.getElementById('prevAmt').textContent='TSh '+fmt(amt);
   document.getElementById('prevRiba').textContent='TSh '+fmt(riba);
   document.getElementById('prevTotal').textContent='TSh '+fmt(total);
@@ -1301,7 +1301,7 @@ function submitLoanRequest(){
   if(amt<100000){showNotif('Kiwango cha chini cha mkopo ni TSh 100,000!','error');return;}
   const reason=document.getElementById('loanReason').value.trim();
   if(!reason){showNotif('Tafadhali eleza sababu ya mkopo!','error');return;}
-  const riba=amt*0.1, total=amt+riba, due=addMonths(today(),2);
+  const riba=amt*0.1, total=amt+riba, due=addMonths(today(),1);
   const txt=`Unakaribia kuomba mkopo wa Tsh. ${fmt(amt)} wenye riba ya Tsh. ${fmt(riba)}, utatakiwa kurejesha jumla ya Tsh. ${fmt(total)} kabla ya tarehe ${due}. Tafadhali kama unakubaliana na taratibu hizi, unaweza kuconfirm kutuma ombi lako.`;
   document.getElementById('loanModalText').textContent=txt;
   pendingLoanData={amt,riba,total,due,reason};
