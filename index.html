@@ -532,6 +532,10 @@ tr:hover td{background:rgba(255,255,255,.04)}
               <label>Kiasi cha Mkopo (TSh)</label>
               <input type="number" id="loanAmount" placeholder="Mfano: 500000" min="100000" step="50000" oninput="calcLoanPreview()">
             </div>
+            <div class="dash-form-group">
+              <label>Tarehe ya Ombi</label>
+              <input type="text" id="loanDate" placeholder="YYYY-MM-DD" data-dp readonly>
+            </div>
             <div id="loanPreview" style="display:none" class="loan-breakdown">
               <div class="loan-row"><span>Kiasi cha Mkopo</span><strong id="prevAmt">—</strong></div>
               <div class="loan-row"><span>Riba (10%)</span><strong id="prevRiba">—</strong></div>
@@ -1238,6 +1242,10 @@ async function loadMwanachamaDash(){
   document.getElementById('mcAvatar').textContent = u.firstName[0].toUpperCase();
   document.getElementById('mcName').textContent   = u.fullName;
   document.getElementById('mcWelcome').textContent = `Karibu, ${u.firstName}!`;
+  const ldEl=document.getElementById('loanDate');
+  ldEl.value=today();
+  ldEl.addEventListener('change',calcLoanPreview);
+  initDatePickers();
   await refreshMcStats();
 }
 
@@ -1329,11 +1337,12 @@ function showMcSection(id){
 function calcLoanPreview(){
   const amt=parseFloat(document.getElementById('loanAmount').value)||0;
   if(amt<1){document.getElementById('loanPreview').style.display='none';return;}
-  const riba=amt*0.1, total=amt+riba, dueDate=addMonths(today(),1);
+  const dateVal=document.getElementById('loanDate').value||today();
+  const riba=amt*0.1, total=amt+riba, dueDate=addMonths(dateVal,1);
   document.getElementById('prevAmt').textContent='TSh '+fmt(amt);
   document.getElementById('prevRiba').textContent='TSh '+fmt(riba);
   document.getElementById('prevTotal').textContent='TSh '+fmt(total);
-  document.getElementById('prevReq').textContent=today();
+  document.getElementById('prevReq').textContent=dateVal;
   document.getElementById('prevDue').textContent=dueDate;
   document.getElementById('loanPreview').style.display='block';
 }
@@ -1343,10 +1352,11 @@ function submitLoanRequest(){
   if(amt<100000){showNotif('Kiwango cha chini cha mkopo ni TSh 100,000!','error');return;}
   const reason=document.getElementById('loanReason').value.trim();
   if(!reason){showNotif('Tafadhali eleza sababu ya mkopo!','error');return;}
-  const riba=amt*0.1, total=amt+riba, due=addMonths(today(),1);
+  const requestDate=document.getElementById('loanDate').value||today();
+  const riba=amt*0.1, total=amt+riba, due=addMonths(requestDate,1);
   const txt=`Unakaribia kuomba mkopo wa Tsh. ${fmt(amt)} wenye riba ya Tsh. ${fmt(riba)}, utatakiwa kurejesha jumla ya Tsh. ${fmt(total)} kabla ya tarehe ${due}. Tafadhali kama unakubaliana na taratibu hizi, unaweza kuconfirm kutuma ombi lako.`;
   document.getElementById('loanModalText').textContent=txt;
-  pendingLoanData={amt,riba,total,due,reason};
+  pendingLoanData={amt,riba,total,due,reason,requestDate};
   document.getElementById('loanModal').style.display='flex';
 }
 
@@ -1354,18 +1364,19 @@ function closeLoanModal(){document.getElementById('loanModal').style.display='no
 
 async function confirmLoanSubmit(){
   closeLoanModal();
-  const {amt,riba,total,due,reason}=pendingLoanData;
+  const {amt,riba,total,due,reason,requestDate}=pendingLoanData;
   showLoading('Inatuma ombi la mkopo...');
   await SB.insert('loans',{
     id:'l_'+Date.now(), member_id:currentUser.id,
     member_name:currentUser.fullName, member_phone:currentUser.phone,
     amount:amt, riba:riba, total_repay:total, due_date:due,
-    reason:reason, request_date:today(),
+    reason:reason, request_date:requestDate||today(),
     status:'pending_mhazini', paid_amount:0, repaid_status:'pending'
   });
   hideLoading();
   document.getElementById('loanAmount').value='';
   document.getElementById('loanReason').value='';
+  document.getElementById('loanDate').value=today();
   document.getElementById('loanPreview').style.display='none';
   showNotif('Ombi lako la mkopo limetumwa kwa Mhazini!');
   simulateSMS('0752536237',`RISE UP: Ombi la mkopo wa TSh ${fmt(amt)} kutoka kwa ${currentUser.fullName} (${currentUser.phone}). Tafadhali angalia dashibodi yako.`);
