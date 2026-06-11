@@ -776,7 +776,17 @@ tr:hover td{background:rgba(255,255,255,.04)}
       <div id="mhRipoti" class="dash-section">
         <div class="page-header">
           <div><h2>Ripoti ya Kikundi</h2><p>Muhtasari kamili wa kikundi</p></div>
-          <button class="dash-btn dash-btn-primary" onclick="window.print()">Chapisha Ripoti</button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <button class="dash-btn dash-btn-primary" onclick="window.print()">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="vertical-align:-2px;margin-right:5px"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Chapisha
+            </button>
+            <button class="dash-btn" style="background:rgba(26,107,74,.25);color:#6fcf97;border:1px solid rgba(26,107,74,.45)" onclick="downloadExcel()">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="vertical-align:-2px;margin-right:5px"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="9"/><line x1="9" y1="9" x2="15" y2="15"/></svg>Pakua Excel
+            </button>
+            <button class="dash-btn" style="background:rgba(192,57,43,.2);color:#f0857a;border:1px solid rgba(192,57,43,.4)" onclick="downloadPDF()">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="vertical-align:-2px;margin-right:5px"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>Pakua PDF
+            </button>
+          </div>
         </div>
         <div class="page-body" id="reportContent">
           <!-- generated dynamically -->
@@ -1079,6 +1089,7 @@ let currentUser = null;
 let pendingLoanData = null;
 let pendingDeleteId = null;
 let pendingDeleteName = null;
+let lastReportData = null;
 
 // ============================================================
 // AUTH
@@ -1638,6 +1649,8 @@ async function generateReport(){
       <thead><tr><th>Tarehe</th><th>Kichwa</th><th>Kiasi</th><th>Maelezo</th></tr></thead>
       <tbody>${expenses.map(e=>`<tr><td>${e.date}</td><td>${e.title}</td><td>TSh ${fmt(e.amount)}</td><td>${e.description||'—'}</td></tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:20px;color:rgba(255,255,255,.3)">Hakuna matumizi</td></tr>'}</tbody>
     </table></div></div>`;
+
+  lastReportData = { members, loans, expenses, totalHisa, totalGiven, totalPaid, unpaid, profit, totalExp, netProfit, perHisa };
 }
 
 async function showMhSection(id){
@@ -1928,6 +1941,91 @@ function toggleMobileNav(id){ const el=document.getElementById(id); if(el) el.cl
 function closeMobileNav(id){ const el=document.getElementById(id); if(el) el.classList.remove('open'); }
 function addMonths(dateStr,months){ const d=new Date(dateStr); d.setMonth(d.getMonth()+months); return d.toISOString().split('T')[0]; }
 
+// ============================================================
+// DOWNLOAD: EXCEL
+// ============================================================
+function downloadExcel(){
+  if(!lastReportData){showNotif('Tafadhali angalia ripoti kwanza!','warn');return;}
+  if(typeof XLSX==='undefined'){showNotif('Maktaba ya Excel haijapakuliwa. Angalia mtandao!','error');return;}
+  const {members,loans,expenses,totalHisa,totalGiven,totalPaid,unpaid,profit,totalExp,netProfit,perHisa}=lastReportData;
+  const wb=XLSX.utils.book_new();
+
+  // Sheet 1: Summary
+  const sumSheet=[
+    ['RISE UP - Ripoti ya Kikundi',''],
+    ['Tarehe:', today()],
+    ['',''],
+    ['Kichwa','Thamani'],
+    ['Jumla ya Hisa',totalHisa],
+    ['Thamani ya Hisa (TSh)',totalHisa*100000],
+    ['Mikopo Iliyotolewa (TSh)',Math.round(totalGiven)],
+    ['Kilicholipwa (TSh)',Math.round(totalPaid)],
+    ['Kilichobaki (TSh)',Math.round(unpaid)],
+    ['Faida ya Jumla (TSh)',Math.round(profit)],
+    ['Matumizi (TSh)',Math.round(totalExp)],
+    ['Faida Halisi (TSh)',Math.round(netProfit)],
+    ['Faida kwa Hisa (TSh)',Math.round(perHisa)],
+    ['Idadi ya Wanachama',members.length],
+  ];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sumSheet),'Muhtasari');
+
+  // Sheet 2: Per-member details
+  const memberHeaders=['Jina','Simu','Hisa','Thamani (TSh)','Mkopo (TSh)','Kilicholipwa (TSh)','Mikopo Inayoendelea','Kilichobaki (TSh)'];
+  const memberRows=members.map(m=>{
+    const mL=loans.filter(l=>l.member_id===m.id);
+    const given=mL.reduce((s,l)=>s+parseFloat(l.amount),0);
+    const paid=mL.reduce((s,l)=>s+(parseFloat(l.paid_amount)||0),0);
+    const remain=Math.max(0,mL.reduce((s,l)=>s+parseFloat(l.total_repay),0)-paid);
+    const partial=mL.filter(l=>l.repaid_status==='partial').length;
+    return [m.full_name,m.phone,m.hisa||0,(m.hisa||0)*100000,Math.round(given),Math.round(paid),partial,Math.round(remain)];
+  });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([memberHeaders,...memberRows]),'Wanachama');
+
+  // Sheet 3: Expenses
+  const expHeaders=['Tarehe','Kichwa','Kiasi (TSh)','Maelezo'];
+  const expRows=expenses.map(e=>[e.date,e.title,parseFloat(e.amount),e.description||'']);
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([expHeaders,...expRows]),'Matumizi');
+
+  XLSX.writeFile(wb,`RISE_UP_Ripoti_${today()}.xlsx`);
+  showNotif('Faili la Excel limepakuliwa!');
+}
+
+// ============================================================
+// DOWNLOAD: PDF
+// ============================================================
+async function downloadPDF(){
+  const el=document.getElementById('reportContent');
+  if(!el||!el.innerHTML.trim()){showNotif('Tafadhali angalia ripoti kwanza!','warn');return;}
+  if(typeof html2canvas==='undefined'||typeof window.jspdf==='undefined'){
+    showNotif('Maktaba ya PDF haijapakuliwa. Angalia mtandao!','error');return;
+  }
+  showNotif('Inaunda PDF, subiri kidogo...');
+  try {
+    const canvas=await html2canvas(el,{scale:1.5,backgroundColor:'#0a0b1e',useCORS:true,logging:false});
+    const imgData=canvas.toDataURL('image/png');
+    const {jsPDF}=window.jspdf;
+    const pdf=new jsPDF({orientation:'p',unit:'mm',format:'a4'});
+    const pdfW=pdf.internal.pageSize.getWidth();
+    const pdfH=pdf.internal.pageSize.getHeight();
+    const imgH=pdfW*(canvas.height/canvas.width);
+    let heightLeft=imgH;
+    let position=0;
+    pdf.addImage(imgData,'PNG',0,position,pdfW,imgH);
+    heightLeft-=pdfH;
+    while(heightLeft>0){
+      position=heightLeft-imgH;
+      pdf.addPage();
+      pdf.addImage(imgData,'PNG',0,position,pdfW,imgH);
+      heightLeft-=pdfH;
+    }
+    pdf.save(`RISE_UP_Ripoti_${today()}.pdf`);
+    showNotif('Faili la PDF limepakuliwa!');
+  } catch(e){
+    showNotif('Hitilafu ya kuunda PDF. Jaribu tena!','error');
+    console.error('downloadPDF error:',e);
+  }
+}
+
 /* ── CUSTOM DATE PICKER ── */
 (function(){
   const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -2084,5 +2182,9 @@ function addMonths(dateStr,months){ const d=new Date(dateStr); d.setMonth(d.getM
 .msg-btn-wa:hover{background:#128c3f;color:#fff}
 </style>
 
+<!-- Download libraries -->
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </body>
 </html>
