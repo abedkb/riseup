@@ -826,13 +826,33 @@ tr:hover td{background:rgba(255,255,255,.04)}
       <div id="mhLipaMkopo" class="dash-section">
         <div class="page-header"><div><h2>Lipa Mkopo</h2><p>Rekodi malipo ya mkopo</p></div></div>
         <div class="page-body">
+          <!-- Step 1: choose member -->
           <div class="form-card">
             <h3>Rekodi Malipo ya Mkopo</h3>
             <div class="dash-form-group">
               <label>Chagua Mwanachama</label>
               <select id="payMember" onchange="loadMemberLoan()"></select>
             </div>
-            <div id="loanPayInfo" style="display:none">
+          </div>
+          <!-- Step 2: list of all active loans for chosen member -->
+          <div id="memberLoansSection" style="display:none;margin-top:16px">
+            <div class="table-card">
+              <div class="table-header"><h3>Mikopo Inayoendelea</h3></div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Kiasi</th><th>Riba</th><th>Jumla ya Kulipa</th><th>Kilicholipwa</th><th>Kilichobaki</th><th>Tarehe ya Mwisho</th><th>Hali</th><th>Chagua</th></tr></thead>
+                  <tbody id="memberLoansTable"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <!-- Step 3: payment form for the selected loan -->
+          <div id="loanPayInfo" style="display:none;margin-top:16px">
+            <div class="form-card">
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+                <button onclick="cancelLoanSelection()" style="background:none;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px">&#8592; Rudi</button>
+                <h3 style="margin:0">Lipa Mkopo Uliochaguliwa</h3>
+              </div>
               <div class="loan-breakdown">
                 <div class="loan-row"><span>Kiasi cha Mkopo</span><strong id="payLoanAmt">—</strong></div>
                 <div class="loan-row"><span>Jumla ya Kulipa</span><strong id="payLoanTotal">—</strong></div>
@@ -1637,20 +1657,56 @@ async function renderExpTable(){
 
 async function loadMemberLoan(){
   const memberId=document.getElementById('payMember').value;
-  const loans = await SB.getWhere('loans',[
+  const memberLoansSection=document.getElementById('memberLoansSection');
+  document.getElementById('loanPayInfo').style.display='none';
+  if(!memberId){memberLoansSection.style.display='none';return;}
+  const loans=await SB.getWhere('loans',[
     {col:'member_id',op:'eq',val:memberId},{col:'status',op:'eq',val:'approved'}
   ]);
-  const activeLoan = loans.find(l=>l.repaid_status!=='paid');
-  const info = document.getElementById('loanPayInfo');
-  if(!activeLoan){info.style.display='none';showNotif('Mwanachama huyu hana mkopo unaoendelea.','warn');return;}
+  const activeLoans=loans.filter(l=>l.repaid_status!=='paid');
+  if(!activeLoans.length){
+    memberLoansSection.style.display='none';
+    showNotif('Mwanachama huyu hana mkopo unaoendelea.','warn');
+    return;
+  }
+  memberLoansSection.style.display='block';
+  document.getElementById('memberLoansTable').innerHTML=activeLoans.map(l=>{
+    const remain=parseFloat(l.total_repay)-(parseFloat(l.paid_amount)||0);
+    const badge=l.repaid_status==='partial'
+      ?'<span class="badge badge-pending">Sehemu</span>'
+      :'<span class="badge" style="background:rgba(200,151,42,.15);color:#f0c060;border:1px solid rgba(200,151,42,.3)">Haijalipiwa</span>';
+    return `<tr>
+      <td>TSh ${fmt(l.amount)}</td>
+      <td>${l.riba_percent||10}%</td>
+      <td>TSh ${fmt(l.total_repay)}</td>
+      <td>TSh ${fmt(l.paid_amount||0)}</td>
+      <td>TSh ${fmt(remain)}</td>
+      <td>${l.due_date||'—'}</td>
+      <td>${badge}</td>
+      <td><button class="btn-sm btn-approve" onclick="selectLoanForPayment('${l.id}')">Lipa</button></td>
+    </tr>`;
+  }).join('');
+}
+
+async function selectLoanForPayment(loanId){
+  const rows=await SB.get('loans',{id:loanId});
+  const loan=rows[0]; if(!loan) return;
+  document.getElementById('memberLoansSection').style.display='none';
+  const info=document.getElementById('loanPayInfo');
   info.style.display='block';
-  document.getElementById('payLoanAmt').textContent='TSh '+fmt(activeLoan.amount);
-  document.getElementById('payLoanTotal').textContent='TSh '+fmt(activeLoan.total_repay);
-  document.getElementById('payLoanPaid').textContent='TSh '+fmt(activeLoan.paid_amount||0);
-  document.getElementById('payLoanRemain').textContent='TSh '+fmt(activeLoan.total_repay-(activeLoan.paid_amount||0));
-  document.getElementById('payLoanDue').textContent=activeLoan.due_date;
+  document.getElementById('payLoanAmt').textContent='TSh '+fmt(loan.amount);
+  document.getElementById('payLoanTotal').textContent='TSh '+fmt(loan.total_repay);
+  document.getElementById('payLoanPaid').textContent='TSh '+fmt(loan.paid_amount||0);
+  document.getElementById('payLoanRemain').textContent='TSh '+fmt(loan.total_repay-(loan.paid_amount||0));
+  document.getElementById('payLoanDue').textContent=loan.due_date||'—';
   document.getElementById('payDate').value=today();
-  document.getElementById('loanPayInfo').dataset.loanId=activeLoan.id;
+  document.getElementById('payAmount').value='';
+  info.dataset.loanId=loanId;
+}
+
+function cancelLoanSelection(){
+  document.getElementById('loanPayInfo').style.display='none';
+  document.getElementById('memberLoansSection').style.display='block';
 }
 
 async function recordPayment(){
@@ -1658,19 +1714,20 @@ async function recordPayment(){
   const payDate=document.getElementById('payDate').value||today();
   const loanId=document.getElementById('loanPayInfo').dataset.loanId;
   if(payAmt<1){showNotif('Ingiza kiasi cha malipo!','error');return;}
-  if(!loanId){showNotif('Hakuna mkopo unaoendelea!','error');return;}
+  if(!loanId){showNotif('Hakuna mkopo uliochaguliwa!','error');return;}
   showLoading('Inalandikisha malipo...');
-  const loanRows = await SB.get('loans',{id:loanId});
-  const loan = loanRows[0]; if(!loan){hideLoading();return;}
-  const newPaid = (parseFloat(loan.paid_amount)||0) + payAmt;
-  const newStatus = newPaid >= parseFloat(loan.total_repay) ? 'paid' : 'partial';
+  const loanRows=await SB.get('loans',{id:loanId});
+  const loan=loanRows[0]; if(!loan){hideLoading();return;}
+  const newPaid=(parseFloat(loan.paid_amount)||0)+payAmt;
+  const newStatus=newPaid>=parseFloat(loan.total_repay)?'paid':'partial';
   await Promise.all([
     SB.update('loans',{id:loanId},{paid_amount:newPaid,repaid_status:newStatus}),
     SB.insert('loan_payments',{id:'lp_'+Date.now(),loan_id:loanId,member_id:loan.member_id,pay_amount:payAmt,pay_date:payDate})
   ]);
   hideLoading();
-  if(newStatus==='paid') showNotif('Mkopo umelipwa kikamilifu! 🎉');
+  if(newStatus==='paid') showNotif('Mkopo umelipwa kikamilifu!');
   else showNotif('Malipo yamesajiliwa. Kilichobaki: TSh '+fmt(loan.total_repay-newPaid));
+  document.getElementById('loanPayInfo').style.display='none';
   await loadMemberLoan();
   await refreshMhStats();
 }
@@ -1755,7 +1812,7 @@ async function showMhSection(id){
   const mobileTabs=document.querySelectorAll('#mhMobileNav .nav-tab');
   if(navMap[id]!==undefined){desktopTabs[navMap[id]]?.classList.add('active');mobileTabs[navMap[id]]?.classList.add('active');}
   if(id==='mhRipoti') await generateReport();
-  if(id==='mhLipaMkopo'){await populateMhaziniSelects();document.getElementById('loanPayInfo').style.display='none';}
+  if(id==='mhLipaMkopo'){await populateMhaziniSelects();document.getElementById('loanPayInfo').style.display='none';document.getElementById('memberLoansSection').style.display='none';}
   await refreshMhStats();
 }
 
