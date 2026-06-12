@@ -530,7 +530,16 @@ tr:hover td{background:rgba(255,255,255,.04)}
             <h3>Fomu ya Ombi la Mkopo</h3>
             <div class="dash-form-group">
               <label>Kiasi cha Mkopo (TSh)</label>
-              <input type="number" id="loanAmount" placeholder="Mfano: 500000" min="100000" step="50000" oninput="calcLoanPreview()">
+              <input type="number" id="loanAmount" placeholder="Mfano: 50000" min="10000" step="10000" oninput="calcLoanPreview()">
+            </div>
+            <div class="dash-form-group">
+              <label>Chagua Asilimia ya Riba</label>
+              <select id="loanRibaPercent" onchange="calcLoanPreview()">
+                <option value="5">5% — Ndogo (Faida ndogo)</option>
+                <option value="10" selected>10% — Kawaida</option>
+                <option value="15">15% — Ya Kati</option>
+                <option value="20">20% — Kubwa (Faida kubwa)</option>
+              </select>
             </div>
             <div class="dash-form-group">
               <label>Tarehe ya Ombi</label>
@@ -538,7 +547,7 @@ tr:hover td{background:rgba(255,255,255,.04)}
             </div>
             <div id="loanPreview" style="display:none" class="loan-breakdown">
               <div class="loan-row"><span>Kiasi cha Mkopo</span><strong id="prevAmt">—</strong></div>
-              <div class="loan-row"><span>Riba (10%)</span><strong id="prevRiba">—</strong></div>
+              <div class="loan-row"><span id="prevRibaLabel">Riba (10%)</span><strong id="prevRiba">—</strong></div>
               <div class="loan-row"><span>Jumla ya Kulipa</span><strong id="prevTotal">—</strong></div>
               <div class="loan-row"><span>Tarehe ya Kuomba</span><strong id="prevReq">—</strong></div>
               <div class="loan-row"><span>Tarehe ya Kulipa</span><strong id="prevDue">—</strong></div>
@@ -676,7 +685,7 @@ tr:hover td{background:rgba(255,255,255,.04)}
             <div class="table-header"><h3>Mikopo Inayosubiri</h3></div>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Mwanachama</th><th>Kiasi</th><th>Riba</th><th>Jumla</th><th>Tarehe</th><th>Sababu</th><th>Vitendo</th></tr></thead>
+                <thead><tr><th>Mwanachama</th><th>Kiasi</th><th>%</th><th>Riba</th><th>Jumla</th><th>Tarehe</th><th>Sababu</th><th>Vitendo</th></tr></thead>
                 <tbody id="mhLoanRequests"></tbody>
               </table>
             </div>
@@ -1348,9 +1357,11 @@ function showMcSection(id){
 function calcLoanPreview(){
   const amt=parseFloat(document.getElementById('loanAmount').value)||0;
   if(amt<1){document.getElementById('loanPreview').style.display='none';return;}
+  const percent=parseFloat(document.getElementById('loanRibaPercent').value)||10;
   const dateVal=document.getElementById('loanDate').value||today();
-  const riba=amt*0.1, total=amt+riba, dueDate=addMonths(dateVal,1);
+  const riba=amt*(percent/100), total=amt+riba, dueDate=addMonths(dateVal,1);
   document.getElementById('prevAmt').textContent='TSh '+fmt(amt);
+  document.getElementById('prevRibaLabel').textContent='Riba ('+percent+'%)';
   document.getElementById('prevRiba').textContent='TSh '+fmt(riba);
   document.getElementById('prevTotal').textContent='TSh '+fmt(total);
   document.getElementById('prevReq').textContent=dateVal;
@@ -1360,14 +1371,15 @@ function calcLoanPreview(){
 
 function submitLoanRequest(){
   const amt=parseFloat(document.getElementById('loanAmount').value)||0;
-  if(amt<100000){showNotif('Kiwango cha chini cha mkopo ni TSh 100,000!','error');return;}
+  if(amt<10000){showNotif('Kiwango cha chini cha mkopo ni TSh 10,000!','error');return;}
   const reason=document.getElementById('loanReason').value.trim();
   if(!reason){showNotif('Tafadhali eleza sababu ya mkopo!','error');return;}
   const requestDate=document.getElementById('loanDate').value||today();
-  const riba=amt*0.1, total=amt+riba, due=addMonths(requestDate,1);
-  const txt=`Unakaribia kuomba mkopo wa Tsh. ${fmt(amt)} wenye riba ya Tsh. ${fmt(riba)}, utatakiwa kurejesha jumla ya Tsh. ${fmt(total)} kabla ya tarehe ${due}. Tafadhali kama unakubaliana na taratibu hizi, unaweza kuconfirm kutuma ombi lako.`;
+  const percent=parseFloat(document.getElementById('loanRibaPercent').value)||10;
+  const riba=amt*(percent/100), total=amt+riba, due=addMonths(requestDate,1);
+  const txt=`Unakaribia kuomba mkopo wa Tsh. ${fmt(amt)} wenye riba ya ${percent}% (Tsh. ${fmt(riba)}), utatakiwa kurejesha jumla ya Tsh. ${fmt(total)} kabla ya tarehe ${due}. Tafadhali kama unakubaliana na taratibu hizi, unaweza kuconfirm kutuma ombi lako.`;
   document.getElementById('loanModalText').textContent=txt;
-  pendingLoanData={amt,riba,total,due,reason,requestDate};
+  pendingLoanData={amt,riba,total,due,reason,requestDate,percent};
   document.getElementById('loanModal').style.display='flex';
 }
 
@@ -1375,12 +1387,12 @@ function closeLoanModal(){document.getElementById('loanModal').style.display='no
 
 async function confirmLoanSubmit(){
   closeLoanModal();
-  const {amt,riba,total,due,reason,requestDate}=pendingLoanData;
+  const {amt,riba,total,due,reason,requestDate,percent}=pendingLoanData;
   showLoading('Inatuma ombi la mkopo...');
   await SB.insert('loans',{
     id:'l_'+Date.now(), member_id:currentUser.id,
     member_name:currentUser.fullName, member_phone:currentUser.phone,
-    amount:amt, riba:riba, total_repay:total, due_date:due,
+    amount:amt, riba:riba, riba_percent:percent, total_repay:total, due_date:due,
     reason:reason, request_date:requestDate||today(),
     status:'pending_mhazini', paid_amount:0, repaid_status:'pending'
   });
@@ -1388,6 +1400,7 @@ async function confirmLoanSubmit(){
   document.getElementById('loanAmount').value='';
   document.getElementById('loanReason').value='';
   document.getElementById('loanDate').value=today();
+  document.getElementById('loanRibaPercent').value='10';
   document.getElementById('loanPreview').style.display='none';
   showNotif('Ombi lako la mkopo limetumwa kwa Mhazini!');
   simulateSMS('0752536237',`RISE UP: Ombi la mkopo wa TSh ${fmt(amt)} kutoka kwa ${currentUser.fullName} (${currentUser.phone}). Tafadhali angalia dashibodi yako.`);
@@ -1415,7 +1428,10 @@ async function refreshMhStats(){
   const totalPaid    = allLoans.reduce((s,l)=>s+(parseFloat(l.paid_amount)||0),0);
   const totalRepay   = allLoans.reduce((s,l)=>s+parseFloat(l.total_repay),0);
   const unpaid       = Math.max(0,totalRepay-totalPaid);
-  const profit       = totalPaid*0.1;
+  const profit       = allLoans.reduce((s,l)=>{
+    const tr=parseFloat(l.total_repay)||0; if(!tr) return s;
+    return s+(parseFloat(l.paid_amount)||0)*(parseFloat(l.riba)||0)/tr;
+  },0);
   const totalExp     = expenses.reduce((s,e)=>s+parseFloat(e.amount),0);
   const netProfit    = profit-totalExp;
   const perHisa      = totalHisa>0 ? netProfit/totalHisa : 0;
@@ -1439,10 +1455,11 @@ async function refreshMhStats(){
 async function renderMhLoanRequests(){
   const loans = await SB.get('loans',{status:'pending_mhazini'});
   const tb = document.getElementById('mhLoanRequests');
-  if(!loans.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:rgba(255,255,255,.3);padding:20px">Hakuna maombi</td></tr>';return;}
+  if(!loans.length){tb.innerHTML='<tr><td colspan="8" style="text-align:center;color:rgba(255,255,255,.3);padding:20px">Hakuna maombi</td></tr>';return;}
   tb.innerHTML = loans.map(l=>`
     <tr>
       <td>${l.member_name}</td><td>TSh ${fmt(l.amount)}</td>
+      <td><span class="badge" style="background:rgba(200,151,42,.15);color:#f0c060;border:1px solid rgba(200,151,42,.3)">${l.riba_percent||10}%</span></td>
       <td>TSh ${fmt(l.riba)}</td><td>TSh ${fmt(l.total_repay)}</td>
       <td>${l.request_date}</td>
       <td style="max-width:150px;font-size:12px">${l.reason||'—'}</td>
@@ -1612,11 +1629,12 @@ async function generateReport(){
   const totalPaid=loans.reduce((s,l)=>s+(parseFloat(l.paid_amount)||0),0);
   const totalRepay=loans.reduce((s,l)=>s+parseFloat(l.total_repay),0);
   const unpaid=Math.max(0,totalRepay-totalPaid);
-  const profit=totalPaid*0.1;
+  const profit=loans.reduce((s,l)=>{const tr=parseFloat(l.total_repay)||0;return tr?s+(parseFloat(l.paid_amount)||0)*(parseFloat(l.riba)||0)/tr:s;},0);
   const totalExp=expenses.reduce((s,e)=>s+parseFloat(e.amount),0);
   const netProfit=Math.max(0,profit-totalExp);
   const perHisa=totalHisa>0?netProfit/totalHisa:0;
 
+  // Per-member rows
   const rows=members.map(m=>{
     const mL=loans.filter(l=>l.member_id===m.id);
     const given=mL.reduce((s,l)=>s+parseFloat(l.amount),0);
@@ -1624,6 +1642,17 @@ async function generateReport(){
     const remain=Math.max(0,mL.reduce((s,l)=>s+parseFloat(l.total_repay),0)-paid);
     const partial=mL.filter(l=>l.repaid_status==='partial').length;
     return `<tr><td>${m.full_name}</td><td>${m.phone}</td><td>${m.hisa||0}</td><td>TSh ${fmt((m.hisa||0)*100000)}</td><td>TSh ${fmt(given)}</td><td>TSh ${fmt(paid)}</td><td>${partial} mkopo</td><td>TSh ${fmt(remain)}</td></tr>`;
+  }).join('');
+
+  // Breakdown of loans by rate
+  const rateGroups={5:[],10:[],15:[],20:[]};
+  loans.forEach(l=>{ const p=l.riba_percent||10; if(rateGroups[p]) rateGroups[p].push(l); });
+  const rateRows=Object.entries(rateGroups).map(([p,ls])=>{
+    if(!ls.length) return '';
+    const g=ls.reduce((s,l)=>s+parseFloat(l.amount),0);
+    const r=ls.reduce((s,l)=>s+parseFloat(l.riba),0);
+    const paid=ls.reduce((s,l)=>s+(parseFloat(l.paid_amount)||0),0);
+    return `<tr><td><span class="badge" style="background:rgba(200,151,42,.15);color:#f0c060;border:1px solid rgba(200,151,42,.3)">${p}%</span></td><td>${ls.length}</td><td>TSh ${fmt(g)}</td><td>TSh ${fmt(r)}</td><td>TSh ${fmt(paid)}</td></tr>`;
   }).join('');
 
   document.getElementById('reportContent').innerHTML=`
@@ -1635,12 +1664,17 @@ async function generateReport(){
         <div class="report-item"><div class="r-val">TSh ${fmt(totalGiven)}</div><div class="r-lbl">Mikopo Iliyotolewa</div></div>
         <div class="report-item"><div class="r-val">TSh ${fmt(totalPaid)}</div><div class="r-lbl">Kilicholipwa</div></div>
         <div class="report-item"><div class="r-val">TSh ${fmt(unpaid)}</div><div class="r-lbl">Kilichobaki</div></div>
+        <div class="report-item"><div class="r-val">TSh ${fmt(profit)}</div><div class="r-lbl">Faida Iliyopatikana</div></div>
         <div class="report-item"><div class="r-val">TSh ${fmt(netProfit)}</div><div class="r-lbl">Faida Halisi</div></div>
         <div class="report-item"><div class="r-val">TSh ${fmt(totalExp)}</div><div class="r-lbl">Matumizi</div></div>
         <div class="report-item"><div class="r-val">TSh ${fmt(perHisa)}</div><div class="r-lbl">Faida/Hisa</div></div>
         <div class="report-item"><div class="r-val">${members.length}</div><div class="r-lbl">Wanachama</div></div>
       </div>
     </div>
+    <div class="table-card" style="margin-bottom:16px"><div class="table-header"><h3>Mikopo kwa Asilimia ya Riba</h3></div><div class="table-wrap"><table>
+      <thead><tr><th>Riba %</th><th>Idadi</th><th>Jumla Iliyotolewa</th><th>Jumla ya Riba</th><th>Kilicholipwa</th></tr></thead>
+      <tbody>${rateRows||'<tr><td colspan="5" style="text-align:center;padding:20px;color:rgba(255,255,255,.3)">Hakuna mikopo</td></tr>'}</tbody>
+    </table></div></div>
     <div class="table-card"><div class="table-header"><h3>Maelezo kwa Kila Mwanachama</h3></div><div class="table-wrap"><table>
       <thead><tr><th>Jina</th><th>Simu</th><th>Hisa</th><th>Thamani</th><th>Mkopo</th><th>Kilicholipwa</th><th>Inayoendelea</th><th>Kilichobaki</th></tr></thead>
       <tbody>${rows||'<tr><td colspan="8" style="text-align:center;padding:20px;color:rgba(255,255,255,.3)">Hakuna wanachama</td></tr>'}</tbody>
@@ -1969,7 +2003,18 @@ function downloadExcel(){
   ];
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sumSheet),'Muhtasari');
 
-  // Sheet 2: Per-member details
+  // Sheet 2: Loans by interest rate breakdown
+  const rateHdr=['Riba %','Idadi ya Mikopo','Jumla Iliyotolewa (TSh)','Jumla ya Riba (TSh)','Kilicholipwa (TSh)'];
+  const rateData=[5,10,15,20].map(p=>{
+    const ls=loans.filter(l=>(l.riba_percent||10)===p);
+    const g=ls.reduce((s,l)=>s+parseFloat(l.amount),0);
+    const r=ls.reduce((s,l)=>s+parseFloat(l.riba),0);
+    const pd=ls.reduce((s,l)=>s+(parseFloat(l.paid_amount)||0),0);
+    return [p+'%',ls.length,Math.round(g),Math.round(r),Math.round(pd)];
+  });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([rateHdr,...rateData]),'Mikopo kwa Riba%');
+
+  // Sheet 3: Per-member details
   const memberHeaders=['Jina','Simu','Hisa','Thamani (TSh)','Mkopo (TSh)','Kilicholipwa (TSh)','Mikopo Inayoendelea','Kilichobaki (TSh)'];
   const memberRows=members.map(m=>{
     const mL=loans.filter(l=>l.member_id===m.id);
@@ -1981,7 +2026,7 @@ function downloadExcel(){
   });
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([memberHeaders,...memberRows]),'Wanachama');
 
-  // Sheet 3: Expenses
+  // Sheet 4: Expenses
   const expHeaders=['Tarehe','Kichwa','Kiasi (TSh)','Maelezo'];
   const expRows=expenses.map(e=>[e.date,e.title,parseFloat(e.amount),e.description||'']);
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([expHeaders,...expRows]),'Matumizi');
