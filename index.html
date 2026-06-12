@@ -669,6 +669,11 @@ tr:hover td{background:rgba(255,255,255,.04)}
               <div class="value" id="mhPendingLoanCount" style="color:#f0a060">0</div>
               <div class="sub" style="color:rgba(255,255,255,.4)">yanasubiri idhini yako</div>
             </div>
+            <div class="stat-card" style="border-left:3px solid var(--danger);background:rgba(192,57,43,.12);cursor:pointer" onclick="showMhSection('mhLipaMkopo')">
+              <div class="label" style="color:rgba(255,255,255,.45)">Mikopo Iliyopita Muda</div>
+              <div class="value" id="mhOverdueCount" style="color:#f0857a">0</div>
+              <div class="sub" style="color:rgba(255,255,255,.4)">zinahitaji rollover</div>
+            </div>
           </div>
 
           <!-- Pending Mhazini approval — appears here immediately so Mhazini sees it on home -->
@@ -682,6 +687,21 @@ tr:hover td{background:rgba(255,255,255,.04)}
                 <thead><tr><th>Mwanachama</th><th>Kiasi</th><th>Riba %</th><th>Jumla</th><th>Tarehe</th><th>Vitendo</th></tr></thead>
                 <tbody id="mhHomePendingTable"></tbody>
               </table>
+            </div>
+          </div>
+
+          <!-- Overdue loans needing rollover -->
+          <div id="mhOverdueSection" style="display:none;margin-bottom:16px">
+            <div class="table-card" style="border:1px solid rgba(192,57,43,.35)">
+              <div class="table-header" style="background:rgba(192,57,43,.1)">
+                <h3 style="color:#f0857a">&#9888; Mikopo Iliyopita Muda — Inahitaji Rollover</h3>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Mwanachama</th><th>Namba ya Mkopo</th><th>Kilichobaki (Asili)</th><th>Mara za Rollover</th><th>Jumla Mpya ya Kulipa</th><th>Vitendo</th></tr></thead>
+                  <tbody id="mhOverdueTable"></tbody>
+                </table>
+              </div>
             </div>
           </div>
 
@@ -840,7 +860,7 @@ tr:hover td{background:rgba(255,255,255,.04)}
               <div class="table-header"><h3>Mikopo Inayoendelea</h3></div>
               <div class="table-wrap">
                 <table>
-                  <thead><tr><th>Kiasi</th><th>Riba</th><th>Jumla ya Kulipa</th><th>Kilicholipwa</th><th>Kilichobaki</th><th>Tarehe ya Mwisho</th><th>Hali</th><th>Chagua</th></tr></thead>
+                  <thead><tr><th>Namba ya Mkopo</th><th>Kiasi</th><th>Riba</th><th>Jumla ya Kulipa</th><th>Kilicholipwa</th><th>Kilichobaki</th><th>Tarehe ya Mwisho</th><th>Hali</th><th>Vitendo</th></tr></thead>
                   <tbody id="memberLoansTable"></tbody>
                 </table>
               </div>
@@ -854,6 +874,7 @@ tr:hover td{background:rgba(255,255,255,.04)}
                 <h3 style="margin:0">Lipa Mkopo Uliochaguliwa</h3>
               </div>
               <div class="loan-breakdown">
+                <div class="loan-row"><span>Namba ya Mkopo</span><strong id="payLoanRef" style="color:#f0c060;font-family:monospace;font-size:12.5px;letter-spacing:.5px">—</strong></div>
                 <div class="loan-row"><span>Kiasi cha Mkopo</span><strong id="payLoanAmt">—</strong></div>
                 <div class="loan-row"><span>Jumla ya Kulipa</span><strong id="payLoanTotal">—</strong></div>
                 <div class="loan-row"><span>Kilicholipwa</span><strong id="payLoanPaid">—</strong></div>
@@ -862,13 +883,14 @@ tr:hover td{background:rgba(255,255,255,.04)}
               </div>
               <div class="dash-form-group">
                 <label>Kiasi cha Malipo (TSh)</label>
-                <input type="number" id="payAmount" placeholder="0" min="1000">
+                <input type="number" id="payAmount" placeholder="0" min="1000" oninput="checkOverpayment()">
+                <div id="payOverWarn" style="display:none;margin-top:6px;padding:8px 12px;background:rgba(230,126,34,.12);border:1px solid rgba(230,126,34,.4);border-radius:7px;color:#f0a060;font-size:12.5px;line-height:1.5"></div>
               </div>
               <div class="dash-form-group">
                 <label>Tarehe ya Malipo</label>
                 <input type="text" id="payDate" placeholder="YYYY-MM-DD" pattern="\d{4}-\d{2}-\d{2}" data-dp readonly>
               </div>
-              <button class="dash-btn dash-btn-primary" onclick="recordPayment()">Hifadhi Malipo</button>
+              <button class="dash-btn dash-btn-primary" onclick="initiatePayment()">Hifadhi Malipo</button>
             </div>
           </div>
         </div>
@@ -1053,11 +1075,116 @@ tr:hover td{background:rgba(255,255,255,.04)}
 <!-- LOAN CONFIRM MODAL -->
 <div id="loanModal" class="modal-overlay" style="display:none">
   <div class="modal-box">
-    <h3>⚠️ Thibitisha Ombi la Mkopo</h3>
+    <h3>&#9888;&#65039; Thibitisha Ombi la Mkopo</h3>
     <p id="loanModalText"></p>
     <div class="modal-actions">
       <button class="modal-cancel" onclick="closeLoanModal()">Ghairi</button>
       <button class="modal-confirm" onclick="confirmLoanSubmit()">Ndio, Tuma Ombi</button>
+    </div>
+  </div>
+</div>
+
+<!-- ROLLOVER MODAL -->
+<div id="rolloverModal" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:520px;width:100%">
+    <h3 style="color:#f0857a">&#8635; Rollover ya Mkopo</h3>
+    <p style="font-size:12.5px;color:rgba(255,255,255,.45);margin-bottom:14px">Mkopo huu umepita muda wake. Kilichobaki kitakuwa mkopo mpya na riba yake.</p>
+    <div style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.25);border-radius:9px;padding:14px;margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:#f0857a;margin-bottom:8px;text-transform:uppercase;letter-spacing:.6px">Mkopo wa Zamani (Unafungwa)</div>
+      <div class="loan-row"><span>Namba</span><strong id="rvOldRef" style="color:#f0c060;font-family:monospace;font-size:12px">—</strong></div>
+      <div class="loan-row"><span>Mwanachama</span><strong id="rvOldMember">—</strong></div>
+      <div class="loan-row"><span>Jumla ya Kulipa</span><strong id="rvOldTotal">—</strong></div>
+      <div class="loan-row"><span>Kilicholipwa</span><strong id="rvOldPaid" style="color:#6fcf97">—</strong></div>
+      <div class="loan-row"><span>Kilichobaki (Mtaji Mpya)</span><strong id="rvOldRemain" style="color:#f0857a">—</strong></div>
+    </div>
+    <div style="background:rgba(200,151,42,.08);border:1px solid rgba(200,151,42,.3);border-radius:9px;padding:14px">
+      <div style="font-size:11px;font-weight:700;color:#f0c060;margin-bottom:8px;text-transform:uppercase;letter-spacing:.6px">Mkopo Mpya (Rollover)</div>
+      <div class="loan-row"><span>Mtaji Mpya</span><strong id="rvNewAmt" style="color:#fff">—</strong></div>
+      <div class="loan-row"><span>Mara za Rollover</span><strong id="rvRolloverCount" style="color:#f0857a;font-size:13px">—</strong></div>
+      <div class="loan-row"><span id="rvNewRibaLabel">Riba (10%)</span><strong id="rvNewRiba" style="color:#f0c060">—</strong></div>
+      <div class="loan-row"><span>Jumla ya Kulipa</span><strong id="rvNewTotal" style="color:#6fcf97;font-size:15px">—</strong></div>
+      <div class="loan-row"><span>Tarehe ya Mwisho</span><strong id="rvNewDue">—</strong></div>
+    </div>
+    <p style="font-size:12.5px;color:rgba(255,255,255,.45);margin-top:14px;margin-bottom:0">Je, unataka kuendelea? Mkopo wa zamani utafungwa na mkopo mpya utaanzishwa moja kwa moja.</p>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="modal-cancel" onclick="document.getElementById('rolloverModal').style.display='none'">Ghairi</button>
+      <button style="background:var(--warn);color:#fff;padding:9px 20px;border-radius:8px;font-size:13.5px;font-weight:700;cursor:pointer;border:none;font-family:inherit" onclick="executeRollover()">&#8635; Thibitisha Rollover</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT LOAN MODAL -->
+<div id="editLoanModal" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:540px;width:100%">
+    <h3 style="color:#f0c060">&#9998; Hariri Mkopo</h3>
+    <div style="display:flex;gap:18px;margin-bottom:16px;flex-wrap:wrap">
+      <span style="font-size:12.5px;color:rgba(255,255,255,.45)">Namba: <strong id="editLoanRef" style="color:#f0c060;font-family:monospace;letter-spacing:.4px">—</strong></span>
+      <span style="font-size:12.5px;color:rgba(255,255,255,.45)">Mwanachama: <strong id="editLoanMember" style="color:#fff">—</strong></span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="dash-form-group">
+        <label>Kiasi cha Mkopo (TSh)</label>
+        <input type="number" id="editAmt" min="0" oninput="recalcEditLoan()">
+      </div>
+      <div class="dash-form-group">
+        <label>Riba %</label>
+        <select id="editRibaPct" onchange="recalcEditLoan()">
+          <option value="5">5%</option>
+          <option value="10">10%</option>
+          <option value="15">15%</option>
+          <option value="20">20%</option>
+        </select>
+      </div>
+      <div class="dash-form-group">
+        <label>Riba (TSh)</label>
+        <input type="number" id="editRiba" min="0">
+      </div>
+      <div class="dash-form-group">
+        <label>Jumla ya Kulipa (TSh)</label>
+        <input type="number" id="editTotal" min="0">
+      </div>
+      <div class="dash-form-group">
+        <label>Kilicholipwa (TSh)</label>
+        <input type="number" id="editPaid" min="0" oninput="recalcEditStatus()">
+      </div>
+      <div class="dash-form-group">
+        <label>Hali ya Malipo</label>
+        <select id="editRepaidStatus">
+          <option value="pending">Haijalipiwa</option>
+          <option value="partial">Sehemu</option>
+          <option value="paid">Imelipwa</option>
+        </select>
+      </div>
+      <div class="dash-form-group" style="grid-column:1/-1">
+        <label>Tarehe ya Mwisho ya Kulipa</label>
+        <input type="text" id="editDueDate" placeholder="YYYY-MM-DD" data-dp readonly>
+      </div>
+    </div>
+    <div id="editLoanWarn" style="display:none;background:rgba(230,126,34,.12);border:1px solid rgba(230,126,34,.4);border-radius:8px;padding:10px 14px;color:#f0a060;font-size:12.5px;margin-top:8px;line-height:1.5"></div>
+    <div class="modal-actions" style="margin-top:18px">
+      <button class="modal-cancel" onclick="document.getElementById('editLoanModal').style.display='none'">Ghairi</button>
+      <button style="background:var(--gold);color:#1a1200;padding:9px 20px;border-radius:8px;font-size:13.5px;font-weight:700;cursor:pointer;border:none;font-family:inherit" onclick="saveEditedLoan()">Hifadhi Mabadiliko</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAYMENT CONFIRM MODAL -->
+<div id="payConfirmModal" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <h3 style="color:#6fcf97">&#128179; Thibitisha Malipo ya Mkopo</h3>
+    <p style="font-size:12.5px;color:rgba(255,255,255,.45);margin-bottom:14px">Hakikisha maelezo yafuatayo kabla ya kuendelea</p>
+    <div class="loan-breakdown">
+      <div class="loan-row"><span>Mwanachama</span><strong id="payConfirmMember" style="color:#fff">—</strong></div>
+      <div class="loan-row"><span>Namba ya Mkopo</span><strong id="payConfirmRef" style="color:#f0c060;font-family:monospace;font-size:12.5px;letter-spacing:.5px">—</strong></div>
+      <div class="loan-row"><span>Kilichobaki Kabla ya Malipo</span><strong id="payConfirmRemain">—</strong></div>
+      <div class="loan-row"><span>Kiasi cha Kulipa</span><strong id="payConfirmAmt" style="color:#6fcf97">—</strong></div>
+      <div class="loan-row"><span>Kitakachobaki Baada ya Malipo</span><strong id="payConfirmAfter">—</strong></div>
+    </div>
+    <div id="payConfirmWarnModal" style="display:none;background:rgba(230,126,34,.12);border:1px solid rgba(230,126,34,.4);border-radius:8px;padding:12px 14px;color:#f0a060;font-size:13px;margin-top:12px;line-height:1.6"></div>
+    <p style="font-size:13px;color:rgba(255,255,255,.5);margin-top:14px;margin-bottom:0">Je, una uhakika unataka kuendelea na malipo haya?</p>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="modal-cancel" onclick="document.getElementById('payConfirmModal').style.display='none'">Ghairi</button>
+      <button class="modal-confirm" onclick="recordPayment()">Ndio, Hifadhi Malipo</button>
     </div>
   </div>
 </div>
@@ -1136,6 +1263,9 @@ function hideLoading() {}
 
 let currentUser = null;
 let pendingLoanData = null;
+let pendingPaymentData = null;
+let editingLoanId = null;
+let pendingRolloverData = null;
 let pendingDeleteId = null;
 let pendingDeleteName = null;
 let lastReportData = null;
@@ -1430,8 +1560,9 @@ async function confirmLoanSubmit(){
   const {amt,riba,total,due,reason,requestDate,percent}=pendingLoanData;
   showLoading('Inatuma ombi la mkopo...');
   const loanId='l_'+Date.now();
+  const loanRef='RU-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-'+String(Date.now()).slice(-4);
   const result = await SB.insert('loans',{
-    id:loanId, member_id:currentUser.id,
+    id:loanId, loan_ref:loanRef, member_id:currentUser.id,
     member_name:currentUser.fullName, member_phone:currentUser.phone,
     amount:amt, riba:riba, riba_percent:percent, total_repay:total, due_date:due,
     reason:reason, request_date:requestDate||today(),
@@ -1501,6 +1632,14 @@ async function refreshMhStats(){
   document.getElementById('mhPerHisa').textContent='TSh '+fmt(Math.max(0,perHisa));
   document.getElementById('mhTotalExp').textContent='TSh '+fmt(totalExp);
 
+  // Overdue loans — approved, not paid/rolled_over, past due date
+  const overdueLoans=allLoans.filter(l=>
+    l.repaid_status!=='paid' && l.repaid_status!=='rolled_over' &&
+    l.due_date && l.due_date < today()
+  );
+  document.getElementById('mhOverdueCount').textContent=overdueLoans.length;
+  renderMhOverdueTable(overdueLoans);
+
   // Pending-requests stat card + home table
   document.getElementById('mhPendingLoanCount').textContent=pendingLoans.length;
   renderMhHomePendingTable(pendingLoans);
@@ -1509,6 +1648,37 @@ async function refreshMhStats(){
     renderMhLoanRequests(), renderMhHisaTable(),
     renderExpTable(), renderMhPendingChair()
   ]);
+}
+
+function renderMhOverdueTable(loans){
+  const sec=document.getElementById('mhOverdueSection');
+  const tb=document.getElementById('mhOverdueTable');
+  if(!loans.length){sec.style.display='none';return;}
+  sec.style.display='block';
+  tb.innerHTML=loans.map(l=>{
+    const remaining=parseFloat(l.total_repay)-(parseFloat(l.paid_amount)||0);
+    const ribaPct=parseFloat(l.riba_percent)||10;
+    const daysOver=Math.max(0,Math.floor((new Date(today())-new Date(l.due_date))/(1000*60*60*24)));
+    const {count,newTotal,ribaAdded}=calcRolloverProjection(remaining,ribaPct,daysOver);
+    return `<tr>
+      <td>
+        <div style="font-weight:600">${l.member_name}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.4)">Ilipaswa kulipwa: ${l.due_date}</div>
+      </td>
+      <td style="font-family:monospace;font-size:12px;color:#f0c060">${l.loan_ref||l.id}</td>
+      <td style="color:#f0857a;font-weight:600">TSh ${fmt(remaining)}</td>
+      <td style="text-align:center">
+        <span class="badge badge-rejected" style="font-size:13px;padding:5px 12px;font-weight:800">&#8635; × ${count}</span>
+        <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:3px">siku ${daysOver} zimepita</div>
+        <div style="font-size:10.5px;color:rgba(240,133,122,.6);margin-top:2px">${ribaPct}% × ${count} = ${parseFloat((Math.pow(1+ribaPct/100,count)-1)*100).toFixed(2)}%</div>
+      </td>
+      <td>
+        <div style="color:#f0c060;font-weight:800;font-size:15px">TSh ${fmt(newTotal)}</div>
+        <div style="font-size:11.5px;color:rgba(240,133,122,.8);margin-top:3px">+ riba TSh ${fmt(ribaAdded)}</div>
+      </td>
+      <td><button class="btn-sm btn-reject" onclick="openRolloverModal('${l.id}')">&#8635; Rollover</button></td>
+    </tr>`;
+  }).join('');
 }
 
 function renderMhHomePendingTable(loans){
@@ -1663,19 +1833,31 @@ async function loadMemberLoan(){
   const loans=await SB.getWhere('loans',[
     {col:'member_id',op:'eq',val:memberId},{col:'status',op:'eq',val:'approved'}
   ]);
-  const activeLoans=loans.filter(l=>l.repaid_status!=='paid');
-  if(!activeLoans.length){
+  if(!loans.length){
     memberLoansSection.style.display='none';
-    showNotif('Mwanachama huyu hana mkopo unaoendelea.','warn');
+    showNotif('Mwanachama huyu hana mikopo iliyoidhinishwa.','warn');
     return;
   }
   memberLoansSection.style.display='block';
-  document.getElementById('memberLoansTable').innerHTML=activeLoans.map(l=>{
-    const remain=parseFloat(l.total_repay)-(parseFloat(l.paid_amount)||0);
-    const badge=l.repaid_status==='partial'
-      ?'<span class="badge badge-pending">Sehemu</span>'
-      :'<span class="badge" style="background:rgba(200,151,42,.15);color:#f0c060;border:1px solid rgba(200,151,42,.3)">Haijalipiwa</span>';
-    return `<tr>
+  document.getElementById('memberLoansTable').innerHTML=loans.map(l=>{
+    const remain=Math.max(0,parseFloat(l.total_repay)-(parseFloat(l.paid_amount)||0));
+    const isPaid=l.repaid_status==='paid';
+    const isRolledOver=l.repaid_status==='rolled_over';
+    const isOverdue=!isPaid&&!isRolledOver&&l.due_date&&l.due_date<today();
+    const badge=isPaid
+      ?'<span class="badge badge-approved">Imelipwa</span>'
+      :isRolledOver
+        ?'<span class="badge badge-rejected">Imefungwa (Rollover)</span>'
+        :isOverdue
+          ?'<span class="badge badge-rejected">Imepita Muda</span>'
+          :l.repaid_status==='partial'
+            ?'<span class="badge badge-pending">Sehemu</span>'
+            :'<span class="badge" style="background:rgba(200,151,42,.15);color:#f0c060;border:1px solid rgba(200,151,42,.3)">Haijalipiwa</span>';
+    const rowStyle=(isPaid||isRolledOver)?'opacity:.5':'';
+    const lipaBtn=(isPaid||isRolledOver)?'':`<button class="btn-sm btn-approve" onclick="selectLoanForPayment('${l.id}')">Lipa</button>`;
+    const rolloverBtn=isOverdue?`<button class="btn-sm btn-reject" onclick="openRolloverModal('${l.id}')">&#8635; Rollover</button>`:'';
+    return `<tr style="${rowStyle}">
+      <td style="font-family:monospace;font-size:12px;color:#f0c060">${l.loan_ref||l.id}</td>
       <td>TSh ${fmt(l.amount)}</td>
       <td>${l.riba_percent||10}%</td>
       <td>TSh ${fmt(l.total_repay)}</td>
@@ -1683,7 +1865,11 @@ async function loadMemberLoan(){
       <td>TSh ${fmt(remain)}</td>
       <td>${l.due_date||'—'}</td>
       <td>${badge}</td>
-      <td><button class="btn-sm btn-approve" onclick="selectLoanForPayment('${l.id}')">Lipa</button></td>
+      <td style="display:flex;gap:5px;flex-wrap:wrap">
+        ${lipaBtn}
+        ${rolloverBtn}
+        <button class="btn-sm btn-gold" onclick="openEditLoanModal('${l.id}')">&#9998; Hariri</button>
+      </td>
     </tr>`;
   }).join('');
 }
@@ -1691,9 +1877,11 @@ async function loadMemberLoan(){
 async function selectLoanForPayment(loanId){
   const rows=await SB.get('loans',{id:loanId});
   const loan=rows[0]; if(!loan) return;
+  pendingPaymentData=loan;
   document.getElementById('memberLoansSection').style.display='none';
   const info=document.getElementById('loanPayInfo');
   info.style.display='block';
+  document.getElementById('payLoanRef').textContent=loan.loan_ref||loan.id;
   document.getElementById('payLoanAmt').textContent='TSh '+fmt(loan.amount);
   document.getElementById('payLoanTotal').textContent='TSh '+fmt(loan.total_repay);
   document.getElementById('payLoanPaid').textContent='TSh '+fmt(loan.paid_amount||0);
@@ -1701,7 +1889,44 @@ async function selectLoanForPayment(loanId){
   document.getElementById('payLoanDue').textContent=loan.due_date||'—';
   document.getElementById('payDate').value=today();
   document.getElementById('payAmount').value='';
+  document.getElementById('payOverWarn').style.display='none';
   info.dataset.loanId=loanId;
+}
+
+function checkOverpayment(){
+  const payAmt=parseFloat(document.getElementById('payAmount').value)||0;
+  const warnEl=document.getElementById('payOverWarn');
+  if(!pendingPaymentData||payAmt<=0){warnEl.style.display='none';return;}
+  const remaining=parseFloat(pendingPaymentData.total_repay)-(parseFloat(pendingPaymentData.paid_amount)||0);
+  if(payAmt>remaining){
+    warnEl.style.display='block';
+    warnEl.textContent=`⚠️ Kiasi unachoingia (TSh ${fmt(payAmt)}) kinazidi kilichobaki (TSh ${fmt(remaining)}). Kiasi kitakachohifadhiwa kitakuwa TSh ${fmt(remaining)} tu.`;
+  } else {
+    warnEl.style.display='none';
+  }
+}
+
+function initiatePayment(){
+  const payAmt=parseFloat(document.getElementById('payAmount').value)||0;
+  if(payAmt<1){showNotif('Ingiza kiasi cha malipo!','error');return;}
+  if(!pendingPaymentData){showNotif('Hakuna mkopo uliochaguliwa!','error');return;}
+  const loan=pendingPaymentData;
+  const remaining=parseFloat(loan.total_repay)-(parseFloat(loan.paid_amount)||0);
+  const effectivePay=Math.min(payAmt,remaining);
+  const afterPay=Math.max(0,remaining-payAmt);
+  document.getElementById('payConfirmMember').textContent=loan.member_name;
+  document.getElementById('payConfirmRef').textContent=loan.loan_ref||loan.id;
+  document.getElementById('payConfirmRemain').textContent='TSh '+fmt(remaining);
+  document.getElementById('payConfirmAmt').textContent='TSh '+fmt(payAmt);
+  document.getElementById('payConfirmAfter').textContent='TSh '+fmt(afterPay);
+  const warnModal=document.getElementById('payConfirmWarnModal');
+  if(payAmt>remaining){
+    warnModal.style.display='block';
+    warnModal.innerHTML=`⚠️ <strong>Tahadhari:</strong> Kiasi unachoingia (TSh ${fmt(payAmt)}) kinazidi kilichobaki (TSh ${fmt(remaining)}). Mfumo utahifadhi TSh ${fmt(effectivePay)} tu (kiasi kilichobaki).`;
+  } else {
+    warnModal.style.display='none';
+  }
+  document.getElementById('payConfirmModal').style.display='flex';
 }
 
 function cancelLoanSelection(){
@@ -1709,15 +1934,140 @@ function cancelLoanSelection(){
   document.getElementById('memberLoansSection').style.display='block';
 }
 
+async function openEditLoanModal(loanId){
+  const rows=await SB.get('loans',{id:loanId});
+  const loan=rows[0]; if(!loan) return;
+  editingLoanId=loanId;
+  document.getElementById('editLoanRef').textContent=loan.loan_ref||loan.id;
+  document.getElementById('editLoanMember').textContent=loan.member_name;
+  document.getElementById('editAmt').value=loan.amount;
+  document.getElementById('editRibaPct').value=loan.riba_percent||10;
+  document.getElementById('editRiba').value=loan.riba;
+  document.getElementById('editTotal').value=loan.total_repay;
+  document.getElementById('editPaid').value=loan.paid_amount||0;
+  document.getElementById('editRepaidStatus').value=loan.repaid_status;
+  document.getElementById('editDueDate').value=loan.due_date||'';
+  document.getElementById('editLoanWarn').style.display='none';
+  document.getElementById('editLoanModal').style.display='flex';
+  initDatePickers();
+}
+
+function recalcEditLoan(){
+  const amt=parseFloat(document.getElementById('editAmt').value)||0;
+  const pct=parseFloat(document.getElementById('editRibaPct').value)||10;
+  if(amt>0){
+    const riba=parseFloat((amt*pct/100).toFixed(2));
+    document.getElementById('editRiba').value=riba;
+    document.getElementById('editTotal').value=parseFloat((amt+riba).toFixed(2));
+  }
+}
+
+function recalcEditStatus(){
+  const paid=parseFloat(document.getElementById('editPaid').value)||0;
+  const total=parseFloat(document.getElementById('editTotal').value)||0;
+  if(total<=0) return;
+  const sel=document.getElementById('editRepaidStatus');
+  if(paid<=0) sel.value='pending';
+  else if(paid>=total) sel.value='paid';
+  else sel.value='partial';
+}
+
+async function saveEditedLoan(){
+  if(!editingLoanId) return;
+  const amt=parseFloat(document.getElementById('editAmt').value)||0;
+  const ribaPct=parseFloat(document.getElementById('editRibaPct').value)||10;
+  const riba=parseFloat(document.getElementById('editRiba').value)||0;
+  const total=parseFloat(document.getElementById('editTotal').value)||0;
+  const paid=parseFloat(document.getElementById('editPaid').value)||0;
+  const repaidStatus=document.getElementById('editRepaidStatus').value;
+  const dueDate=document.getElementById('editDueDate').value;
+  const warnEl=document.getElementById('editLoanWarn');
+  if(amt<=0||total<=0){
+    warnEl.style.display='block';
+    warnEl.textContent='⚠️ Kiasi cha mkopo na jumla ya kulipa lazima viwe zaidi ya sifuri!';
+    return;
+  }
+  if(paid>total){
+    warnEl.style.display='block';
+    warnEl.textContent='⚠️ Kilicholipwa hakiwezi kuwa zaidi ya jumla ya kulipa!';
+    return;
+  }
+  warnEl.style.display='none';
+  showLoading('Inasasisha mkopo...');
+  const res=await SB.update('loans',{id:editingLoanId},{
+    amount:amt, riba_percent:ribaPct, riba:riba,
+    total_repay:total, paid_amount:paid,
+    repaid_status:repaidStatus, due_date:dueDate
+  });
+  hideLoading();
+  if(!res){showNotif('Hitilafu ya kuhifadhi. Jaribu tena!','error');return;}
+  document.getElementById('editLoanModal').style.display='none';
+  editingLoanId=null;
+  showNotif('Mkopo umesasishwa kikamilifu!');
+  await loadMemberLoan();
+  await refreshMhStats();
+}
+
+async function openRolloverModal(loanId){
+  const rows=await SB.get('loans',{id:loanId});
+  const loan=rows[0]; if(!loan) return;
+  const remaining=parseFloat(loan.total_repay)-(parseFloat(loan.paid_amount)||0);
+  const ribaPct=parseFloat(loan.riba_percent)||10;
+  const daysOver=Math.max(0,Math.floor((new Date(today())-new Date(loan.due_date))/(1000*60*60*24)));
+  const {count,newTotal,ribaAdded}=calcRolloverProjection(remaining,ribaPct,daysOver);
+  const newDue=addMonths(today(),1);
+  pendingRolloverData={loan,remaining,ribaPct,newRiba:ribaAdded,newTotal,newDue,rolloverCount:count};
+  document.getElementById('rvOldRef').textContent=loan.loan_ref||loan.id;
+  document.getElementById('rvOldMember').textContent=loan.member_name;
+  document.getElementById('rvOldTotal').textContent='TSh '+fmt(loan.total_repay);
+  document.getElementById('rvOldPaid').textContent='TSh '+fmt(loan.paid_amount||0);
+  document.getElementById('rvOldRemain').textContent='TSh '+fmt(remaining);
+  document.getElementById('rvNewAmt').textContent='TSh '+fmt(remaining);
+  document.getElementById('rvRolloverCount').textContent='× '+count+' (siku '+daysOver+' zimepita)';
+  document.getElementById('rvNewRibaLabel').textContent='Riba ('+ribaPct+'% × '+count+' = '+parseFloat(((Math.pow(1+ribaPct/100,count)-1)*100).toFixed(2))+'%)';
+  document.getElementById('rvNewRiba').textContent='TSh '+fmt(ribaAdded);
+  document.getElementById('rvNewTotal').textContent='TSh '+fmt(newTotal);
+  document.getElementById('rvNewDue').textContent=newDue;
+  document.getElementById('rolloverModal').style.display='flex';
+}
+
+async function executeRollover(){
+  if(!pendingRolloverData) return;
+  const {loan,remaining,ribaPct,newRiba,newTotal,newDue,rolloverCount}=pendingRolloverData;
+  document.getElementById('rolloverModal').style.display='none';
+  showLoading('Inafanya rollover...');
+  const newLoanId='l_'+Date.now();
+  const newLoanRef='RU-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-'+String(Date.now()).slice(-4)+'-R';
+  await Promise.all([
+    SB.insert('loans',{
+      id:newLoanId, loan_ref:newLoanRef,
+      member_id:loan.member_id, member_name:loan.member_name, member_phone:loan.member_phone,
+      amount:remaining, riba:newRiba, riba_percent:ribaPct, total_repay:newTotal,
+      paid_amount:0, status:'approved', repaid_status:'pending',
+      request_date:today(), approved_date:today(), due_date:newDue,
+      reason:'Rollover ×'+rolloverCount+' kutoka mkopo '+(loan.loan_ref||loan.id)+'. Kilichobaki asili: TSh '+fmt(remaining)+'. Jumla baada ya rollover: TSh '+fmt(newTotal)+'.'
+    }),
+    SB.update('loans',{id:loan.id},{repaid_status:'rolled_over'})
+  ]);
+  hideLoading();
+  pendingRolloverData=null;
+  showNotif('Rollover imekamilika! Mkopo mpya '+newLoanRef+' umeundwa.');
+  await loadMemberLoan();
+  await refreshMhStats();
+}
+
 async function recordPayment(){
-  const payAmt=parseFloat(document.getElementById('payAmount').value)||0;
+  document.getElementById('payConfirmModal').style.display='none';
   const payDate=document.getElementById('payDate').value||today();
-  const loanId=document.getElementById('loanPayInfo').dataset.loanId;
-  if(payAmt<1){showNotif('Ingiza kiasi cha malipo!','error');return;}
-  if(!loanId){showNotif('Hakuna mkopo uliochaguliwa!','error');return;}
+  if(!pendingPaymentData){showNotif('Hakuna mkopo uliochaguliwa!','error');return;}
+  const loanId=pendingPaymentData.id;
   showLoading('Inalandikisha malipo...');
+  // Re-fetch to get the freshest paid_amount before updating
   const loanRows=await SB.get('loans',{id:loanId});
   const loan=loanRows[0]; if(!loan){hideLoading();return;}
+  const enteredAmt=parseFloat(document.getElementById('payAmount').value)||0;
+  const remaining=parseFloat(loan.total_repay)-(parseFloat(loan.paid_amount)||0);
+  const payAmt=Math.min(enteredAmt,remaining); // cap at remaining — never overpay
   const newPaid=(parseFloat(loan.paid_amount)||0)+payAmt;
   const newStatus=newPaid>=parseFloat(loan.total_repay)?'paid':'partial';
   await Promise.all([
@@ -1725,7 +2075,8 @@ async function recordPayment(){
     SB.insert('loan_payments',{id:'lp_'+Date.now(),loan_id:loanId,member_id:loan.member_id,pay_amount:payAmt,pay_date:payDate})
   ]);
   hideLoading();
-  if(newStatus==='paid') showNotif('Mkopo umelipwa kikamilifu!');
+  pendingPaymentData=null;
+  if(newStatus==='paid') showNotif('Mkopo '+(loan.loan_ref||'')+' umelipwa kikamilifu!');
   else showNotif('Malipo yamesajiliwa. Kilichobaki: TSh '+fmt(loan.total_repay-newPaid));
   document.getElementById('loanPayInfo').style.display='none';
   await loadMemberLoan();
@@ -2090,6 +2441,12 @@ function today(){ return new Date().toISOString().split('T')[0]; }
 function toggleMobileNav(id){ const el=document.getElementById(id); if(el) el.classList.toggle('open'); }
 function closeMobileNav(id){ const el=document.getElementById(id); if(el) el.classList.remove('open'); }
 function addMonths(dateStr,months){ const d=new Date(dateStr); d.setMonth(d.getMonth()+months); return d.toISOString().split('T')[0]; }
+function calcRolloverProjection(remaining,ribaPct,daysOver){
+  const count=Math.max(1,Math.floor(daysOver/30));
+  const newTotal=parseFloat((remaining*Math.pow(1+ribaPct/100,count)).toFixed(2));
+  const ribaAdded=parseFloat((newTotal-remaining).toFixed(2));
+  return {count,newTotal,ribaAdded};
+}
 
 // ============================================================
 // DOWNLOAD: EXCEL
