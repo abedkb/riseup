@@ -657,14 +657,34 @@ tr:hover td{background:rgba(255,255,255,.04)}
             <div class="stat-card green">
               <div class="label">Faida Halisi</div>
               <div class="value" id="mhProfit">TSh 0</div>
-              <div class="sub">10% ya kilicholipwa</div>
+              <div class="sub">baada ya matumizi</div>
             </div>
             <div class="stat-card gold">
               <div class="label">Faida kwa Hisa</div>
               <div class="value" id="mhPerHisa">TSh 0</div>
               <div class="sub">baada ya matumizi</div>
             </div>
+            <div class="stat-card" style="border-left:3px solid var(--warn);background:rgba(230,126,34,.12);cursor:pointer" onclick="showMhSection('mhMikopo')">
+              <div class="label" style="color:rgba(255,255,255,.45)">Maombi Mapya</div>
+              <div class="value" id="mhPendingLoanCount" style="color:#f0a060">0</div>
+              <div class="sub" style="color:rgba(255,255,255,.4)">yanasubiri idhini yako</div>
+            </div>
           </div>
+
+          <!-- Pending Mhazini approval — appears here immediately so Mhazini sees it on home -->
+          <div class="table-card" style="margin-bottom:16px">
+            <div class="table-header" style="justify-content:space-between">
+              <h3>Maombi ya Mkopo Yanayosubiri Idhini Yako</h3>
+              <button class="btn-sm btn-gold" onclick="showMhSection('mhMikopo')">Angalia Yote</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Mwanachama</th><th>Kiasi</th><th>Riba %</th><th>Jumla</th><th>Tarehe</th><th>Vitendo</th></tr></thead>
+                <tbody id="mhHomePendingTable"></tbody>
+              </table>
+            </div>
+          </div>
+
           <div class="table-card">
             <div class="table-header"><h3>Mikopo Inayosubiri Idhini ya Mwenyekiti</h3></div>
             <div class="table-wrap">
@@ -1418,10 +1438,11 @@ async function loadMhaziniDash(){
 }
 
 async function refreshMhStats(){
-  const [members, allLoans, expenses] = await Promise.all([
+  const [members, allLoans, expenses, pendingLoans] = await Promise.all([
     SB.get('members',{status:'approved'}),
     SB.get('loans',{status:'approved'}),
-    SB.get('expenses')
+    SB.get('expenses'),
+    SB.get('loans',{status:'pending_mhazini'})
   ]);
   const totalHisa    = members.reduce((s,m)=>s+(m.hisa||0),0);
   const totalGiven   = allLoans.reduce((s,l)=>s+parseFloat(l.amount),0);
@@ -1446,10 +1467,34 @@ async function refreshMhStats(){
   document.getElementById('mhPerHisa').textContent='TSh '+fmt(Math.max(0,perHisa));
   document.getElementById('mhTotalExp').textContent='TSh '+fmt(totalExp);
 
+  // Pending-requests stat card + home table
+  document.getElementById('mhPendingLoanCount').textContent=pendingLoans.length;
+  renderMhHomePendingTable(pendingLoans);
+
   await Promise.all([
     renderMhLoanRequests(), renderMhHisaTable(),
     renderExpTable(), renderMhPendingChair()
   ]);
+}
+
+function renderMhHomePendingTable(loans){
+  const tb=document.getElementById('mhHomePendingTable');
+  if(!loans.length){
+    tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:rgba(255,255,255,.3);padding:20px">Hakuna maombi mapya ya mkopo</td></tr>';
+    return;
+  }
+  tb.innerHTML=loans.map(l=>`
+    <tr>
+      <td>${l.member_name}</td>
+      <td>TSh ${fmt(l.amount)}</td>
+      <td><span class="badge" style="background:rgba(200,151,42,.15);color:#f0c060;border:1px solid rgba(200,151,42,.3)">${l.riba_percent||10}%</span></td>
+      <td>TSh ${fmt(l.total_repay)}</td>
+      <td>${l.request_date}</td>
+      <td style="display:flex;gap:6px">
+        <button class="btn-sm btn-approve" onclick="mhLoanAction('${l.id}','approve')">Idhinisha</button>
+        <button class="btn-sm btn-reject"  onclick="mhLoanAction('${l.id}','reject')">Kataa</button>
+      </td>
+    </tr>`).join('');
 }
 
 async function renderMhLoanRequests(){
