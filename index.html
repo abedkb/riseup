@@ -1295,7 +1295,7 @@ async function refreshMcStats(){
   const mRows = await SB.get('members', {id: u.id});
   if(mRows.length) { u.hisa = mRows[0].hisa; currentUser.hisa = mRows[0].hisa; }
 
-  const loans = await SB.getWhere('loans',[{col:'member_id',op:'eq',val:u.id}]);
+  const loans = await SB.getWhere('loans',[{col:'member_id',op:'eq',val:u.id},{col:'status',op:'eq',val:'approved'}]);
   const totalHisa = u.hisa||0;
   document.getElementById('mcTotalHisaCount').textContent = totalHisa+' Hisa';
   document.getElementById('mcTotalHisaAmt').textContent   = 'TSh '+fmt(totalHisa*100000);
@@ -1321,12 +1321,8 @@ function renderMcLoansTable(loans){
   if(!loans.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:rgba(255,255,255,.3);padding:20px">Hakuna mkopo</td></tr>';return;}
   tb.innerHTML = loans.map(l=>{
     const remain = l.total_repay-(l.paid_amount||0);
-    let badge, status;
-    if(l.status==='rejected'){badge='badge-rejected';status='Imekataliwa';}
-    else if(l.status==='pending_mhazini'){badge='badge-pending';status='Inasubiri Mhazini';}
-    else if(l.status==='pending_mwenyekiti'){badge='badge-pending';status='Inasubiri Mwenyekiti';}
-    else if(l.repaid_status==='paid'){badge='badge-approved';status='Imelipwa';}
-    else{badge='badge-active';status='Inaendelea';}
+    const badge  = l.repaid_status==='paid'?'badge-approved':remain>0?'badge-active':'badge-pending';
+    const status = l.repaid_status==='paid'?'Imelipwa':remain>0?'Inaendelea':'Imekamilika';
     return `<tr>
       <td>${l.approved_date||l.request_date}</td>
       <td>TSh ${fmt(l.amount)}</td><td>TSh ${fmt(l.total_repay)}</td>
@@ -1341,12 +1337,8 @@ function renderMcDetailLoans(loans){
   if(!loans.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:rgba(255,255,255,.3);padding:20px">Hakuna mikopo</td></tr>';return;}
   tb.innerHTML = loans.map(l=>{
     const remain = l.total_repay-(l.paid_amount||0);
-    let st, stL;
-    if(l.status==='rejected'){st='badge-rejected';stL='Imekataliwa';}
-    else if(l.status==='pending_mhazini'){st='badge-pending';stL='Inasubiri Mhazini';}
-    else if(l.status==='pending_mwenyekiti'){st='badge-pending';stL='Inasubiri Mwenyekiti';}
-    else if(l.repaid_status==='paid'){st='badge-approved';stL='Imelipwa';}
-    else{st='badge-active';stL='Inaendelea';}
+    const st     = l.repaid_status==='paid'?'badge-approved':remain>0?'badge-active':'badge-pending';
+    const stL    = l.repaid_status==='paid'?'Imelipwa':remain>0?'Inaendelea':'Imekamilika';
     return `<tr>
       <td>${l.approved_date||l.request_date}</td>
       <td>TSh ${fmt(l.amount)}</td><td>TSh ${fmt(l.total_repay)}</td>
@@ -1417,16 +1409,26 @@ async function confirmLoanSubmit(){
   closeLoanModal();
   const {amt,riba,total,due,reason,requestDate,percent}=pendingLoanData;
   showLoading('Inatuma ombi la mkopo...');
+  const loanId='l_'+Date.now();
   const result = await SB.insert('loans',{
-    id:'l_'+Date.now(), member_id:currentUser.id,
+    id:loanId, member_id:currentUser.id,
     member_name:currentUser.fullName, member_phone:currentUser.phone,
     amount:amt, riba:riba, riba_percent:percent, total_repay:total, due_date:due,
     reason:reason, request_date:requestDate||today(),
     status:'pending_mhazini', paid_amount:0, repaid_status:'pending'
   });
+  if(result===null){
+    hideLoading();
+    showNotif('Hitilafu: Ombi halikuhifadhiwa. Angalia muunganiko wa mtandao!','error');
+    console.error('confirmLoanSubmit: SB.insert returned null — check Supabase loans table and RLS policies');
+    return;
+  }
+  // Verify the loan was actually saved
+  const verifyRows = await SB.get('loans',{id:loanId});
   hideLoading();
-  if(!result){
-    showNotif('Hitilafu: Ombi halikuhifadhiwa. Angalia muunganiko wa mtandao au wasiliana na msimamizi.','error');
+  if(!verifyRows.length){
+    showNotif('Hitilafu: Ombi halikuhifadhiwa kwenye mfumo. Angalia Supabase RLS policies!','error');
+    console.error('confirmLoanSubmit: insert appeared to succeed but loan not found on verify GET — likely RLS SELECT policy missing');
     return;
   }
   document.getElementById('loanAmount').value='';
@@ -1435,8 +1437,6 @@ async function confirmLoanSubmit(){
   document.getElementById('loanRibaPercent').value='10';
   document.getElementById('loanPreview').style.display='none';
   showNotif('Ombi lako la mkopo limetumwa kwa Mhazini!');
-  // Refresh member's own loan view so the new pending loan appears
-  await refreshMcStats();
   simulateSMS('0752536237',`RISE UP: Ombi la mkopo wa TSh ${fmt(amt)} kutoka kwa ${currentUser.fullName} (${currentUser.phone}). Tafadhali angalia dashibodi yako.`);
   simulateWhatsApp('0752536237',`RISE UP: ${currentUser.fullName} ameomba mkopo wa TSh ${fmt(amt)}. Ingia mfumoni kwa idhini.`);
   flushMsgQueue();
