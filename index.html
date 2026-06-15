@@ -464,26 +464,37 @@ tr:hover td{background:rgba(255,255,255,.04)}
         <div class="page-body">
           <div class="stats-grid">
             <div class="stat-card green">
-              <div class="label">Jumla ya Hisa</div>
+              <div class="label">Idadi ya Hisa</div>
               <div class="value" id="mcTotalHisaCount">0</div>
               <div class="sub" id="mcTotalHisaAmt">TSh 0</div>
             </div>
             <div class="stat-card blue">
-              <div class="label">Mkopo Unaoendelea</div>
-              <div class="value" id="mcActiveLoan">Hakuna</div>
-              <div class="sub" id="mcLoanRemain">—</div>
+              <div class="label">Jumla ya Mikopo Yako</div>
+              <div class="value" id="mcTotalLoanTotal">TSh 0</div>
+              <div class="sub" id="mcLoanBreakdown">Mtaji: TSh 0 | Riba: TSh 0</div>
             </div>
             <div class="stat-card gold">
-              <div class="label">Kiasi Kilicholipwa</div>
+              <div class="label">Jumla Iliyolipwa</div>
               <div class="value" id="mcPaidAmt">TSh 0</div>
-              <div class="sub">Jumla ya malipo</div>
+              <div class="sub">Jumla ya malipo yaliyofanyika</div>
+            </div>
+            <div class="stat-card red">
+              <div class="label">Kilichobaki (Deni)</div>
+              <div class="value" id="mcTotalRemain">TSh 0</div>
+              <div class="sub">Bado halijalipiwa</div>
             </div>
           </div>
           <div class="table-card">
-            <div class="table-header"><h3>Historia ya Mikopo</h3></div>
+            <div class="table-header" style="justify-content:space-between;align-items:center">
+              <h3>Historia ya Mikopo</h3>
+              <select id="mcLoanFilter" onchange="filterMcLoans()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;border-radius:7px;padding:6px 12px;font-size:13px;font-family:inherit;cursor:pointer;outline:none;min-width:170px">
+                <option value="active">Mikopo Inayoendelea</option>
+                <option value="paid">Mikopo Iliyolipwa</option>
+              </select>
+            </div>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Tarehe</th><th>Kiasi</th><th>Kiasi cha Kulipa</th><th>Tarehe ya Kulipa</th><th>Kilichobaki</th><th>Hali</th></tr></thead>
+                <thead><tr><th>Tarehe</th><th>Kiasi (Principal)</th><th>Jumla ya Kulipa</th><th>Tarehe ya Mwisho</th><th>Kilicholipwa</th><th>Hali</th></tr></thead>
                 <tbody id="mcLoansTable"><tr><td colspan="6" class="empty"><p>Hakuna mkopo bado</p></td></tr></tbody>
               </table>
             </div>
@@ -1262,6 +1273,7 @@ function showLoading(msg) {}
 function hideLoading() {}
 
 let currentUser = null;
+let mcCurrentLoans = [];
 let pendingLoanData = null;
 let pendingPaymentData = null;
 let editingLoanId = null;
@@ -1450,26 +1462,37 @@ async function refreshMcStats(){
   document.getElementById('mcTotalHisaCount').textContent = totalHisa+' Hisa';
   document.getElementById('mcTotalHisaAmt').textContent   = 'TSh '+fmt(totalHisa*100000);
 
-  const activeLoan = loans.find(l=>l.repaid_status!=='paid');
-  if(activeLoan){
-    document.getElementById('mcActiveLoan').textContent  = 'TSh '+fmt(activeLoan.amount);
-    const remain = activeLoan.total_repay - (activeLoan.paid_amount||0);
-    document.getElementById('mcLoanRemain').textContent  = 'Kilichobaki: TSh '+fmt(remain);
-  } else {
-    document.getElementById('mcActiveLoan').textContent  = 'Hakuna';
-    document.getElementById('mcLoanRemain').textContent  = '—';
-  }
-  const totalPaid = loans.reduce((s,l)=>s+(parseFloat(l.paid_amount)||0),0);
-  document.getElementById('mcPaidAmt').textContent = 'TSh '+fmt(totalPaid);
+  const totalPrincipal = loans.reduce((s,l)=>s+parseFloat(l.amount||0),0);
+  const totalRiba      = loans.reduce((s,l)=>s+parseFloat(l.riba||0),0);
+  const totalLoanAmt   = loans.reduce((s,l)=>s+parseFloat(l.total_repay||0),0);
+  const totalPaid      = loans.reduce((s,l)=>s+(parseFloat(l.paid_amount)||0),0);
+  const totalRemain    = Math.max(0, totalLoanAmt - totalPaid);
+
+  mcCurrentLoans = loans;
+  document.getElementById('mcTotalLoanTotal').textContent = loans.length ? 'TSh '+fmt(totalLoanAmt) : 'Hakuna';
+  document.getElementById('mcLoanBreakdown').textContent  = loans.length
+    ? 'Principal: TSh '+fmt(totalPrincipal)+' | Riba: TSh '+fmt(totalRiba)
+    : 'Bado hujachukua mkopo';
+  document.getElementById('mcPaidAmt').textContent   = 'TSh '+fmt(totalPaid);
+  document.getElementById('mcTotalRemain').textContent = 'TSh '+fmt(totalRemain);
+
   renderMcLoansTable(loans);
   renderMcDetailLoans(loans);
   await renderMcHisa(u);
 }
 
 function renderMcLoansTable(loans){
+  const filter = document.getElementById('mcLoanFilter')?.value || 'active';
+  const filtered = filter === 'paid'
+    ? loans.filter(l => l.repaid_status === 'paid')
+    : loans.filter(l => l.repaid_status !== 'paid');
   const tb = document.getElementById('mcLoansTable');
-  if(!loans.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:rgba(255,255,255,.3);padding:20px">Hakuna mkopo</td></tr>';return;}
-  tb.innerHTML = loans.map(l=>{
+  if(!filtered.length){
+    const msg = filter === 'paid' ? 'Hakuna mkopo uliolipwa' : 'Hakuna mkopo inayoendelea';
+    tb.innerHTML=`<tr><td colspan="6" style="text-align:center;color:rgba(255,255,255,.3);padding:20px">${msg}</td></tr>`;
+    return;
+  }
+  tb.innerHTML = filtered.map(l=>{
     const remain = l.total_repay-(l.paid_amount||0);
     const badge  = l.repaid_status==='paid'?'badge-approved':remain>0?'badge-active':'badge-pending';
     const status = l.repaid_status==='paid'?'Imelipwa':remain>0?'Inaendelea':'Imekamilika';
@@ -1480,6 +1503,10 @@ function renderMcLoansTable(loans){
       <td><span class="badge ${badge}">${status}</span></td>
     </tr>`;
   }).join('');
+}
+
+function filterMcLoans(){
+  renderMcLoansTable(mcCurrentLoans);
 }
 
 function renderMcDetailLoans(loans){
