@@ -1462,15 +1462,17 @@ async function refreshMcStats(){
   document.getElementById('mcTotalHisaCount').textContent = totalHisa+' Hisa';
   document.getElementById('mcTotalHisaAmt').textContent   = 'TSh '+fmt(totalHisa*100000);
 
-  const totalPrincipal = loans.reduce((s,l)=>s+parseFloat(l.amount||0),0);
-  const totalRiba      = loans.reduce((s,l)=>s+parseFloat(l.riba||0),0);
-  const totalLoanAmt   = loans.reduce((s,l)=>s+parseFloat(l.total_repay||0),0);
+  // Exclude rolled_over loans from summary — they are superseded by their new rollover loan
+  const nonRolled = loans.filter(l => l.repaid_status !== 'rolled_over');
+  const totalPrincipal = nonRolled.reduce((s,l)=>s+parseFloat(l.amount||0),0);
+  const totalRiba      = nonRolled.reduce((s,l)=>s+parseFloat(l.riba||0),0);
+  const totalLoanAmt   = nonRolled.reduce((s,l)=>s+parseFloat(l.total_repay||0),0);
   const totalPaid      = loans.reduce((s,l)=>s+(parseFloat(l.paid_amount)||0),0);
-  const totalRemain    = Math.max(0, totalLoanAmt - totalPaid);
+  const totalRemain    = nonRolled.reduce((s,l)=>s+Math.max(0,parseFloat(l.total_repay)-(parseFloat(l.paid_amount)||0)),0);
 
   mcCurrentLoans = loans;
-  document.getElementById('mcTotalLoanTotal').textContent = loans.length ? 'TSh '+fmt(totalLoanAmt) : 'Hakuna';
-  document.getElementById('mcLoanBreakdown').textContent  = loans.length
+  document.getElementById('mcTotalLoanTotal').textContent = nonRolled.length ? 'TSh '+fmt(totalLoanAmt) : 'Hakuna';
+  document.getElementById('mcLoanBreakdown').textContent  = nonRolled.length
     ? 'Principal: TSh '+fmt(totalPrincipal)+' | Riba: TSh '+fmt(totalRiba)
     : 'Bado hujachukua mkopo';
   document.getElementById('mcPaidAmt').textContent   = 'TSh '+fmt(totalPaid);
@@ -1494,8 +1496,9 @@ function renderMcLoansTable(loans){
   }
   tb.innerHTML = filtered.map(l=>{
     const remain = l.total_repay-(l.paid_amount||0);
-    const badge  = l.repaid_status==='paid'?'badge-approved':remain>0?'badge-active':'badge-pending';
-    const status = l.repaid_status==='paid'?'Imelipwa':remain>0?'Inaendelea':'Imekamilika';
+    const isRollover = l.repaid_status === 'rolled_over';
+    const badge  = l.repaid_status==='paid'?'badge-approved':isRollover?'badge-rejected':remain>0?'badge-active':'badge-pending';
+    const status = l.repaid_status==='paid'?'Imelipwa':isRollover?'Imefungwa (Rollover)':remain>0?'Inaendelea':'Imekamilika';
     return `<tr>
       <td>${l.approved_date||l.request_date}</td>
       <td>TSh ${fmt(l.amount)}</td><td>TSh ${fmt(l.total_repay)}</td>
@@ -1514,13 +1517,14 @@ function renderMcDetailLoans(loans){
   if(!loans.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:rgba(255,255,255,.3);padding:20px">Hakuna mikopo</td></tr>';return;}
   tb.innerHTML = loans.map(l=>{
     const remain = l.total_repay-(l.paid_amount||0);
-    const st     = l.repaid_status==='paid'?'badge-approved':remain>0?'badge-active':'badge-pending';
-    const stL    = l.repaid_status==='paid'?'Imelipwa':remain>0?'Inaendelea':'Imekamilika';
+    const isRollover = l.repaid_status === 'rolled_over';
+    const st     = l.repaid_status==='paid'?'badge-approved':isRollover?'badge-rejected':remain>0?'badge-active':'badge-pending';
+    const stL    = l.repaid_status==='paid'?'Imelipwa':isRollover?'Imefungwa (Rollover)':remain>0?'Inaendelea':'Imekamilika';
     return `<tr>
       <td>${l.approved_date||l.request_date}</td>
       <td>TSh ${fmt(l.amount)}</td><td>TSh ${fmt(l.total_repay)}</td>
       <td>${l.due_date}</td><td>TSh ${fmt(l.paid_amount||0)}</td>
-      <td>TSh ${fmt(Math.max(0,remain))}</td>
+      <td>TSh ${fmt(isRollover?0:Math.max(0,remain))}</td>
       <td><span class="badge ${st}">${stL}</span></td>
     </tr>`;
   }).join('');
@@ -1637,10 +1641,12 @@ async function refreshMhStats(){
     SB.get('loans',{status:'pending_mhazini'})
   ]);
   const totalHisa    = members.reduce((s,m)=>s+(m.hisa||0),0);
-  const totalGiven   = allLoans.reduce((s,l)=>s+parseFloat(l.amount),0);
+  // Exclude rolled_over loans from given/repay to avoid double-counting with their successor rollover loans
+  const nonRolledLoans = allLoans.filter(l=>l.repaid_status!=='rolled_over');
+  const totalGiven   = nonRolledLoans.reduce((s,l)=>s+parseFloat(l.amount),0);
   const totalPaid    = allLoans.reduce((s,l)=>s+(parseFloat(l.paid_amount)||0),0);
-  const totalRepay   = allLoans.reduce((s,l)=>s+parseFloat(l.total_repay),0);
-  const unpaid       = Math.max(0,totalRepay-totalPaid);
+  const totalRepay   = nonRolledLoans.reduce((s,l)=>s+parseFloat(l.total_repay),0);
+  const unpaid       = nonRolledLoans.reduce((s,l)=>s+Math.max(0,parseFloat(l.total_repay)-(parseFloat(l.paid_amount)||0)),0);
   const profit       = allLoans.reduce((s,l)=>{
     const tr=parseFloat(l.total_repay)||0; if(!tr) return s;
     return s+(parseFloat(l.paid_amount)||0)*(parseFloat(l.riba)||0)/tr;
@@ -2119,10 +2125,11 @@ async function generateReport(){
   ]);
   hideLoading();
   const totalHisa=members.reduce((s,m)=>s+(m.hisa||0),0);
-  const totalGiven=loans.reduce((s,l)=>s+parseFloat(l.amount),0);
+  const rptNonRolled=loans.filter(l=>l.repaid_status!=='rolled_over');
+  const totalGiven=rptNonRolled.reduce((s,l)=>s+parseFloat(l.amount),0);
   const totalPaid=loans.reduce((s,l)=>s+(parseFloat(l.paid_amount)||0),0);
-  const totalRepay=loans.reduce((s,l)=>s+parseFloat(l.total_repay),0);
-  const unpaid=Math.max(0,totalRepay-totalPaid);
+  const totalRepay=rptNonRolled.reduce((s,l)=>s+parseFloat(l.total_repay),0);
+  const unpaid=rptNonRolled.reduce((s,l)=>s+Math.max(0,parseFloat(l.total_repay)-(parseFloat(l.paid_amount)||0)),0);
   const profit=loans.reduce((s,l)=>{const tr=parseFloat(l.total_repay)||0;return tr?s+(parseFloat(l.paid_amount)||0)*(parseFloat(l.riba)||0)/tr:s;},0);
   const totalExp=expenses.reduce((s,e)=>s+parseFloat(e.amount),0);
   const netProfit=Math.max(0,profit-totalExp);
@@ -2131,11 +2138,13 @@ async function generateReport(){
   // Per-member rows
   const rows=members.map(m=>{
     const mL=loans.filter(l=>l.member_id===m.id);
-    const given=mL.reduce((s,l)=>s+parseFloat(l.amount),0);
+    // Exclude rolled_over loans from given/remain so numbers match what member sees in their dashboard
+    const mLActive=mL.filter(l=>l.repaid_status!=='rolled_over');
+    const given=mLActive.reduce((s,l)=>s+parseFloat(l.amount),0);
     const paid=mL.reduce((s,l)=>s+(parseFloat(l.paid_amount)||0),0);
-    const remain=Math.max(0,mL.reduce((s,l)=>s+parseFloat(l.total_repay),0)-paid);
-    const partial=mL.filter(l=>l.repaid_status==='partial').length;
-    return `<tr><td>${m.full_name}</td><td>${m.phone}</td><td>${m.hisa||0}</td><td>TSh ${fmt((m.hisa||0)*100000)}</td><td>TSh ${fmt(given)}</td><td>TSh ${fmt(paid)}</td><td>${partial} mkopo</td><td>TSh ${fmt(remain)}</td></tr>`;
+    const remain=mLActive.reduce((s,l)=>s+Math.max(0,parseFloat(l.total_repay)-(parseFloat(l.paid_amount)||0)),0);
+    const activeCount=mLActive.filter(l=>l.repaid_status!=='paid').length;
+    return `<tr><td>${m.full_name}</td><td>${m.phone}</td><td>${m.hisa||0}</td><td>TSh ${fmt((m.hisa||0)*100000)}</td><td>TSh ${fmt(given)}</td><td>TSh ${fmt(paid)}</td><td>${activeCount} mkopo</td><td>TSh ${fmt(remain)}</td></tr>`;
   }).join('');
 
   // Breakdown of loans by rate
